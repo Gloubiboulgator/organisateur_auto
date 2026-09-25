@@ -1,0 +1,7 @@
+# Dette de FORMAT propre à CE projet — les fichiers écrits AVANT l'adoption du noyau.
+#
+# Cette liste ne fait que RÉTRÉCIR. On l'amorce une fois, à l'installation, puis on en sort les
+# fichiers un par un en les réécrivant au format. Aucun ajout n'est accepté ensuite.
+#
+# Un projet NEUF laisse ce fichier vide, et tout y naît conforme.
+# Amorçage : bash installer.sh /chemin/du/projet --amorcer-dette

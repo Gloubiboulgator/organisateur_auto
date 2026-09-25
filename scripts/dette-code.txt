@@ -1,0 +1,10 @@
+# Dette de PROSE du code — les fichiers Python pas encore réécrits à l'étalon.
+#
+# Même mécanique que dette-doc.txt. Le contrôle 12 exige, le contrôle 13 protège la liste.
+# Il n'y a pas d'équivalent du contrôle 9 ici : un fichier déjà inscrit peut encore voir sa
+# prose empirer. C'est un trou connu, pas un oubli.
+
+# LA SEULE ENTRÉE DE DÉPART, et son motif. Le docstring de cet outil ÉNONCE les signes
+# interdits, donc il les contient. Il échoue à la règle qu'il mesure lui-même, par
+# construction. Même cas que docs/etalons-de-redaction.md dans la dette de doc.
+scripts/doc-mesure.py

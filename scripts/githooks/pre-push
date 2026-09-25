@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Hook pre-push — DEUX filets, dans cet ordre.
+#
+# 1) Témoin du contrôle local — si le projet définit scripts/pousser-local.sh (son propre
+#    contrôle coûteux, ce que le noyau ne connaît pas), ce hook exige un témoin frais avant de
+#    laisser partir la branche par défaut. Absent ce fichier, le filet ne fait rien : rien à
+#    protéger.
+#
+#    LE PROBLÈME QUE CE FILET RÉSOUT (généralisé le 2026-09-19 depuis un projet consommateur) :
+#    `git push` ouvre la connexion vers le remote AVANT que ce hook tourne. Lancer un contrôle
+#    long ICI le ferait tourner connexion déjà ouverte, et un remote qui coupe les connexions
+#    longues interrompt le transfert avant la fin. La parade vit dans `scripts/pousser.sh` :
+#    il fait tourner le contrôle local AVANT toute connexion, pose un témoin, puis pousse. Ce
+#    hook REFUSE net sans témoin frais, plutôt que de lancer le contrôle lui-même — aucun chemin
+#    ne le fait tourner après l'ouverture de la connexion.
+#
+#    TÉMOIN INDEXÉ SUR L'ARBRE, PAS LE COMMIT. Un commit de fusion `--no-ff` sur une branche non
+#    divergente (`git merge --ff-only` puis `--no-ff`) porte un sha neuf pour un arbre identique
+#    à celui déjà testé. Indexer le témoin sur le commit ferait rejouer le contrôle local pour
+#    un contenu déjà certifié.
+#
+# 2) Collision sémantique — vécu chez la source : une session a réécrit un fichier pendant
+#    qu'une autre en corrigeait les faits. Aucun conflit, les phrases étaient différentes. La
+#    réécriture réintroduisait deux erreurs supprimées une heure plus tôt. Git compare des
+#    lignes, pas des sens. Ce filet ne décide rien. Il NOMME les fichiers que l'amont a touchés
+#    aussi, pour qu'on les relise avant de pousser.
+set -u
+zero="0000000000000000000000000000000000000000"
+defaut=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')
+defaut="${defaut:-main}"
+entrees=$(cat)
+
+# ── 1) Témoin du contrôle local ────────────────────────────────────────────────────────────
+if [ -f scripts/pousser-local.sh ]; then
+    temoin="$(git rev-parse --git-common-dir)/temoin-pousser-local"
+    while read -r lref lsha rref rsha; do
+        [ -n "${lref:-}" ] || continue
+        [ "${rref:-}" = "refs/heads/$defaut" ] || continue
+        [ "${lsha:-}" = "$zero" ] && continue
+        arbre_pousse=$(git rev-parse --quiet --verify "$lsha^{tree}" 2>/dev/null || true)
+        [ -n "$arbre_pousse" ] || continue
+        if [ -f "$temoin" ]; then
+            t_pose=$(sed -n '1p' "$temoin")
+            t_arbre=$(sed -n '2p' "$temoin")
+            if [ "$t_arbre" = "$arbre_pousse" ] && [ $(( $(date +%s) - ${t_pose:-0} )) -lt 900 ]; then
+                echo "pre-push : témoin frais pour $(git rev-parse --short "$lsha") (même arbre déjà testé) — contrôle local non relancé."
+                continue
+            fi
+        fi
+        echo "pre-push : REFUSÉ — scripts/pousser-local.sh existe, et aucun témoin frais ne couvre cet arbre." >&2
+        echo "           Utilise scripts/pousser.sh (teste hors connexion, pose le témoin, pousse)." >&2
+        echo "           (contournement exceptionnel, en conscience : git push --no-verify)" >&2
+        exit 1
+    done <<< "$entrees"
+fi
+
+# ── 2) Collision sémantique ─────────────────────────────────────────────────────────────────
+while read -r lref lsha rref rsha; do
+    [ -n "${lref:-}" ] || continue
+    [ "${lsha:-}" = "$zero" ] && continue
+    base=$(git merge-base "$lsha" "origin/$defaut" 2>/dev/null) || continue
+    [ -n "$base" ] || continue
+    a_moi=$(git diff --name-only "$base" "$lsha")
+    [ -n "$a_moi" ] || continue
+    en_amont=$(git diff --name-only "$base" "origin/$defaut" 2>/dev/null || true)
+    [ -n "$en_amont" ] || continue
+    croises=$(comm -12 <(echo "$a_moi" | sort -u) <(echo "$en_amont" | sort -u))
+    if [ -n "$croises" ]; then
+        echo "pre-push : ⚠️  ces fichiers ont AUSSI bougé sur origin/$defaut depuis ta base —" >&2
+        echo "$croises" | sed 's/^/           /' >&2
+        echo "           relis-les : une réécriture peut défaire un correctif sans conflit git." >&2
+    fi
+done <<< "$entrees"
+exit 0

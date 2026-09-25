@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# Hook pre-commit — refuse le commit si la doc, le code ou le noyau dérivent.
+#
+# Activé par :  git config core.hooksPath scripts/githooks
+# Reposé après chaque clone par :  bash scripts/installer-hooks.sh
+# Contourner ponctuellement, à éviter :  git commit --no-verify
+#
+# L'ORDRE COMPTE. Le noyau se vérifie EN PREMIER. Un doc-lint bricolé sur place validerait
+# n'importe quoi, et son vert ne prouverait plus rien.
+# ON JUGE L'INDEX, PAS L'ARBRE DE TRAVAIL, ET LA NUANCE N'EST PAS THÉORIQUE.
+#
+# Les trois contrôles lisent des fichiers sur le disque. Ils voyaient donc l'arbre de travail,
+# alors que le commit emporte l'INDEX. Une faute indexée, puis effacée de l'arbre de travail
+# avant le commit, passait au vert et partait dans l'historique. Reproduit : un fichier
+# contenant un prénom, indexé, puis réécrit proprement sur le disque, a été commité tel quel.
+#
+# On matérialise donc l'index dans un dossier jetable, et on y lance les contrôles. Le lien
+# symbolique vers le dépôt réel suffit à ce que git s'y retrouve : « ls-files » y liste l'index,
+# et « show HEAD: » y trouve les objets.
+#
+# PAS DE GIT_DIR EXPORTÉ. Cette variable écrase « git -C », vérifié en l'exécutant, et le
+# contrôle anti-dérive aurait alors interrogé le projet au lieu du dépôt du noyau.
+#
+# GIT_INDEX_FILE MÉRITE LA MÊME MÉFIANCE. Git la pose lui-même, et sur un commit PARTIEL
+# (« git commit -- <chemins> ») sa valeur est ABSOLUE : un « git -C <autre dépôt> ls-files » y
+# lirait l'index de CE commit-ci. Le contrôle du périmètre lit donc un arbre de commit, jamais
+# un index, ce qui le met hors de portée de cette variable.
+scene=$(mktemp -d) || { echo "pre-commit : dossier jetable impossible à créer." >&2; exit 1; }
+trap 'rm -rf "$scene"' EXIT
+if ! git checkout-index -a -f --prefix="$scene/"; then
+    echo "pre-commit : l'index n'a pas pu être matérialisé, RIEN n'a été vérifié." >&2
+    exit 1
+fi
+ln -s "$(git rev-parse --absolute-git-dir)" "$scene/.git"
+
+# LA SCÈNE N'EST PAS QUE L'INDEX. Certains fichiers dont les contrôles ont besoin ne sont pas
+# forcément suivis : le fichier d'empreintes, les listes de dette du projet, les contrôles
+# locaux. Absents de la scène, le garde anti-dérive refusait TOUT commit en disant que le noyau
+# n'était pas posé, en pointant un chemin temporaire. On y ajoute donc les fichiers présents et
+# non suivis, puis le fichier d'empreintes même s'il est ignoré, parce que rien n'oblige un
+# projet à le versionner.
+#
+# UN FICHIER DONT LA SUPPRESSION EST INDEXÉE NE REVIENT PAS. Recopier tous les non-suivis
+# rouvrait le trou même que cette scène ferme : un fichier retiré de l'index mais encore sur le
+# disque redevenait non suivi, était recopié, et le commit qui SUPPRIME un fichier du noyau
+# passait le contrôle des manquants. On écarte donc ce que HEAD connaît encore.
+git ls-files -z --others --exclude-standard | while IFS= read -r -d '' f; do
+    [ -e "$f" ] || continue
+    git cat-file -e "HEAD:$f" 2>/dev/null && continue   # sa suppression est indexée
+    mkdir -p "$scene/$(dirname "$f")"
+    cp -p "$f" "$scene/$f" 2>/dev/null || true
+done
+if [ -f .noyau-empreintes ] && [ ! -f "$scene/.noyau-empreintes" ]; then
+    cp -p .noyau-empreintes "$scene/.noyau-empreintes"
+fi
+
+# LES MODES VIENNENT DU DISQUE, PAS DE L'INDEX. « checkout-index » écrit les droits que l'index
+# porte, donc un hook désarmé sur le disque ressortait exécutable dans la scène, et le contrôle
+# des hooks désarmés y était aveugle — précisément le cas qu'il vise, un rsync sans -p ou un
+# core.fileMode à false.
+for hook in scripts/githooks/*; do
+    [ -f "$hook" ] && [ -e "$scene/$hook" ] || continue
+    chmod --reference="$hook" "$scene/$hook" 2>/dev/null || true
+done
+
+# LES PISTES VOISINES SE CHERCHENT DEPUIS LE VRAI PROJET. Dans la scène, « .. » désigne le
+# dossier des fichiers temporaires, où aucun noyau ne vit. Le retard devenait donc invérifiable
+# à chaque commit, et le contrôle du périmètre, qui en dépend, était sauté en silence.
+if [ -z "${NOYAU_METHODE:-}" ]; then
+    for voisin in ../structure_projet ../methodo; do
+        [ -d "$voisin/noyau" ] || continue
+        git -C "$voisin" rev-parse --git-dir >/dev/null 2>&1 || continue
+        NOYAU_METHODE="$(cd -P "$voisin" && pwd)"
+        export NOYAU_METHODE
+        break
+    done
+fi
+
+# La cible est passée explicitement : ce script-ci ne se relocalise pas sur son propre dossier.
+# UNE SEULE EXÉCUTION. Le motif « silencieux, puis rejoué pour montrer » ne silençait rien : ce
+# script écrit ses verdicts sur la sortie d'ERREUR. L'utilisateur voyait donc chaque bloc deux
+# fois, et un sha256 de tout le noyau tournait deux fois pour rien.
+bash "$scene/scripts/verifier-noyau.sh" "$scene" || exit 1
+bash "$scene/scripts/doc-lint.sh" || exit 1
+
+# Le code-lint juge l'état du CODE. Un défaut de code déjà connu ne doit pas bloquer un commit
+# qui ne touche QUE de la doc, sinon la doc ne peut plus avancer tant que le code n'est pas
+# réparé, alors que rien ici n'aggrave ce défaut.
+touche_code=0
+while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    case "$f" in
+        docs/*|specs/*|.claude/rules/*|README.md|CHANGELOG.md|CLAUDE.md) ;;
+        *) touche_code=1 ;;
+    esac
+done < <(git diff --cached --name-only --diff-filter=ACMR)
+
+if [ "$touche_code" -eq 1 ]; then
+    bash "$scene/scripts/code-lint.sh" || exit 1
+else
+    echo "commit doc-only : code-lint sauté"
+fi

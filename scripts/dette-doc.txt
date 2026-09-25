@@ -1,0 +1,14 @@
+# Dette de FORMAT de la doc — les fichiers pas encore réécrits à l'étalon de rédaction.
+#
+# Cette liste ne fait que RÉTRÉCIR. Le contrôle 8 refuse toute ligne ajoutée, le contrôle 9
+# empêche un fichier déjà inscrit d'empirer. C'est ce qui fait qu'un fichier NEUF naît conforme,
+# sans que personne ait à y penser : il n'est pas dans la liste, donc il est contrôlé d'office.
+#
+# Un projet neuf démarre avec une liste vide. Un projet qui adopte le noyau sur un corpus déjà
+# écrit y inscrit ses fichiers une fois, puis les en sort un par un.
+
+# LA SEULE ENTRÉE DE DÉPART, et son motif. Le fichier qui ÉNONCE les signes interdits les
+# contient forcément, puisqu'il doit les citer. Il échoue donc à sa propre règle, par
+# construction. La dispense est nommée ici plutôt que cachée dans une exception du contrôle,
+# qui serait alors contournable ailleurs.
+docs/etalons-de-redaction.md

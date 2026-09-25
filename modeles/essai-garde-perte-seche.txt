@@ -1,0 +1,150 @@
+# Les cas du garde des pertes sèches, un par ligne.
+#
+# Format : VERDICT ATTENDU, une barre verticale, la commande jouée.
+#   DOIT_REFUSER  le garde doit refuser, la commande détruit ce que rien ne rend
+#   DOIT_PASSER   le garde doit laisser passer
+#
+# Le croisillon ouvre un commentaire. Un « \n » vaut un retour à la ligne dans la commande,
+# ce qui permet d'écrire un heredoc sur une seule ligne de ce fichier.
+#
+# Trois marques sont remplacées au lancement par essai-garde-perte-seche.sh.
+#   @RACINE@       la racine du dépôt d'essai
+#   @LIEN@         un lien posé sous /tmp qui vise une preuve du dépôt d'essai
+#   @PRINCIPALE@   le nom de la branche principale du dépôt d'essai
+#
+# CAS_ATTENDUS 102
+#
+# LE COMPTE CI-DESSUS EST ÉPINGLÉ, et le script refuse de tourner s'il ne tombe pas juste.
+# Sans lui, retirer un cas ne fait rien rougir, et la couverture rétrécit en silence.
+#
+# CETTE LISTE NE FAIT QUE GRANDIR. Un cas retiré, c'est un contournement qu'on cesse de
+# surveiller. Chaque ronde de revue du garde y verse les formes qu'elle a trouvées.
+DOIT_REFUSER|git commit -m "fix <thing>" ; rm -rf important
+DOIT_REFUSER|cd $INCONNU && rm -rf @RACINE@/important
+DOIT_REFUSER|git clean -fdx -e garde.txt
+DOIT_REFUSER|git clean -fdx -enode_modules
+DOIT_REFUSER|rm -rf @LIEN@
+DOIT_REFUSER|rm -rf {important,data}
+DOIT_REFUSER|rm $(find . -name "*.txt")
+DOIT_REFUSER|find . -type f | xargs -I{} rm -rf {}
+DOIT_PASSER|git checkout autre
+DOIT_PASSER|git switch autre
+# NON-RÉGRESSION — ce que le garde couvrait déjà, et doit continuer
+DOIT_PASSER|rm -rf data
+DOIT_REFUSER|git clean -fdx
+DOIT_REFUSER|git -C . clean -fdx
+DOIT_REFUSER|find . -name "*.txt" -delete
+DOIT_REFUSER|find . -type f | xargs rm -rf
+DOIT_REFUSER|bash -c "rm -rf important"
+DOIT_REFUSER|eval rm -rf important
+DOIT_REFUSER|nohup rm -rf important
+DOIT_REFUSER|(rm -rf important); echo fini
+DOIT_PASSER|cd data && rm -rf donnee.txt
+DOIT_REFUSER|cd important && rm -rf preuve.txt
+DOIT_REFUSER|rm -rf precieux
+DOIT_REFUSER|CIBLE=important; rm -rf "$CIBLE"
+DOIT_REFUSER|rm -rf important 2>/dev/null
+DOIT_REFUSER|git checkout -f autre
+DOIT_REFUSER|git reset --hard HEAD~1
+DOIT_REFUSER|git stash drop
+DOIT_REFUSER|git stash clear
+DOIT_REFUSER|git push --force origin main
+DOIT_REFUSER|git push origin +main
+DOIT_REFUSER|git push --delete origin autre
+DOIT_REFUSER|git worktree remove --force ailleurs
+DOIT_REFUSER|git restore important/preuve.txt
+DOIT_REFUSER|rm -rf $INCONNUE
+DOIT_REFUSER|rm -rf important/*.txt
+DOIT_PASSER|rm -rf node_modules
+DOIT_PASSER|rm -rf /tmp/quelconque
+DOIT_PASSER|rm -f important/inexistant.txt
+DOIT_PASSER|git restore --staged important/preuve.txt
+DOIT_PASSER|find . -name "*.pyc" -delete
+DOIT_PASSER|find . -exec grep -l rm {} ;
+DOIT_PASSER|ls -la important
+DOIT_PASSER|git status
+DOIT_PASSER|T=$(mktemp -d); rm -rf "$T"
+# SECONDE RONDE DE REVUE — 2026-09-15
+DOIT_REFUSER|python3 - <<\PY\nimport shutil\nshutil.rmtree("important")\nPY
+DOIT_REFUSER|python3 - <<'EOF-1'\nimport shutil\nshutil.rmtree("important")\nEOF-1
+DOIT_REFUSER|python3 - <<"EOF.PY"\nimport shutil\nshutil.rmtree("important")\nEOF.PY
+DOIT_REFUSER|cat <<A\nun\nA\ncat <<B\ndeux\nB\ncat <<C\ntrois\nC\ncat <<D\nquatre\nD\npython3 - <<E\nimport shutil\nshutil.rmtree("important")\nE
+DOIT_REFUSER|echo "$(grep -c '(' garde.txt)" ; rm -rf important
+DOIT_REFUSER|echo `grep -c x garde.txt` ; rm -rf important
+DOIT_PASSER|rm -rf /tmp/build-*
+DOIT_REFUSER|git checkout -B autre HEAD~1
+DOIT_REFUSER|git clean -fdx $(echo .)
+DOIT_REFUSER|git clean -fdx {data,x}
+DOIT_REFUSER|git checkout -- $(echo important/preuve.txt)
+DOIT_PASSER|echo "une ( parenthese" ; ls
+DOIT_REFUSER|python3 - <<'PY'\nimport shutil\nshutil.rmtree("important")\nPY
+DOIT_REFUSER|bash <<EOF\nrm -rf important\nEOF
+# TROISIÈME RONDE DE REVUE — 2026-09-15
+DOIT_REFUSER|git checkout autre important
+DOIT_REFUSER|git checkout HEAD .
+DOIT_REFUSER|rm -rf $(mktemp -d; echo @RACINE@/precieux)
+DOIT_REFUSER|python3 - <<PY\n    PY\nimport shutil\nshutil.rmtree("important")\nPY
+DOIT_PASSER|git checkout -B autre
+DOIT_REFUSER|bash -c "bash -c 'bash <<EOF\nrm -rf important\nEOF'"
+DOIT_PASSER|rm -rf "$(mktemp -d)"
+# QUATRIÈME RONDE — 2026-09-15
+DOIT_REFUSER|git checkout -f -B travail @PRINCIPALE@
+DOIT_REFUSER|git checkout -fB travail @PRINCIPALE@
+DOIT_REFUSER|git checkout -f -b nouvelle6 @PRINCIPALE@
+DOIT_PASSER|git checkout -b nouvelle7 @PRINCIPALE@
+DOIT_PASSER|git clean --dry-run build/{a,b}
+DOIT_PASSER|git clean -n build/{a,b}
+DOIT_REFUSER|cd important && bash <<EOF\nrm -rf preuve.txt\nEOF
+# CINQUIÈME RONDE — 2026-09-15
+DOIT_REFUSER|git checkout --pathspec-from-file=liste.txt
+DOIT_REFUSER|git switch -f -
+DOIT_REFUSER|git checkout -f -
+DOIT_REFUSER|git switch --force-create travail @PRINCIPALE@
+DOIT_REFUSER|python3 - <<PY\nimport shutil\nshutil.rmtree("important")
+DOIT_PASSER|git switch -
+# SIXIÈME RONDE — 2026-09-15
+DOIT_REFUSER|bash <<EOF\ngit clean -fdx\nEOF
+DOIT_REFUSER|bash <<EOF\ngit reset --hard HEAD~1\nEOF
+DOIT_REFUSER|bash <<EOF\nfind . -name "*.txt" -delete\nEOF
+DOIT_REFUSER|bash <<EOF\ngit push --force origin @PRINCIPALE@\nEOF
+DOIT_REFUSER|cat <<< bonjour\ngit reset --hard HEAD~1
+DOIT_REFUSER|git reset --hard :/base
+DOIT_PASSER|cat <<< bonjour
+# SEPTIÈME RONDE — 2026-09-15
+DOIT_REFUSER|python3 - <<9E\nimport shutil\nshutil.rmtree("important")\n9E
+DOIT_REFUSER|rm -rf @RACINE@/important2>log
+DOIT_REFUSER|bash -c "bash -c 'bash <<EOF\ngit clean -fdx\nEOF'"
+DOIT_PASSER|echo fini 2>log
+
+# CE QUE LA REVUE PAR MUTATION A MONTRÉ MANQUANT — 2026-09-15
+# Chacun de ces cas couvre un correctif du garde qu'aucun autre ne mesurait.
+# Un dossier vide ne fait perdre personne. Correctif du 2026-09-10.
+DOIT_PASSER|rmdir vide
+# Un nom avec une espace valait deux fichiers suivis, dans les deux sens. 2026-09-10.
+DOIT_PASSER|rm -rf "data/note de suivi.txt"
+# Le dépôt est sous un dossier « build ». Les dossiers jetables ne se cherchent que SOUS la
+# racine du dépôt, sinon un projet rangé là n'est plus gardé du tout. 2026-09-10.
+DOIT_REFUSER|rm -rf precieux
+# La charge dépasse la limite d'une variable d'environnement, et le garde doit tenir le
+# temps. Tué, il rendrait une sortie vide, que le harnais lit comme « rien à signaler ».
+DOIT_REFUSER|echo @GROS@ ; rm -rf important
+# L'inventaire doit dire ce qui partirait, pas seulement refuser.
+# motif: 2 fichier(s), familles
+DOIT_REFUSER|rm -rf important
+
+# HUITIÈME RONDE, TROUVÉE AU PORTAGE — 2026-09-15
+# Le corps d'une substitution est une vraie commande, que le marquage retirait du texte.
+DOIT_REFUSER|echo $(rm -rf important)
+DOIT_REFUSER|echo `rm -rf important`
+# La cible d'une redirection peut être citée. Le motif mangeait son guillemet ouvrant.
+DOIT_REFUSER|echo x > 'mon fichier.txt' ; rm -rf important
+DOIT_REFUSER|echo x > "mon fichier.txt" ; rm -rf important
+# Un point de départ que rev-list refuse sort en erreur, avec une sortie VIDE. Le compte la
+# lisait comme « zéro commit perdu ». Le code de retour se lit désormais.
+DOIT_REFUSER|git checkout -B travail @{-99}
+# Le tiret vaut la branche précédente. Ici elle est « travail » elle-même, donc rien ne se perd.
+DOIT_PASSER|git checkout -B travail -
+# Les cd ne se tronquent plus : c'est le premier qui avait bougé.
+DOIT_REFUSER|cd important\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\nbash <<EOF\nrm -rf preuve.txt\nEOF
+# PWD vaut le dossier du garde, pas celui que la charge suit.
+DOIT_REFUSER|rm -rf $PWD/precieux

@@ -1,0 +1,3 @@
+# Dette de PROSE DU CODE propre à CE projet — les fichiers écrits AVANT l'adoption du noyau.
+#
+# Même mécanique que dette-doc-local.txt. Elle ne fait que rétrécir, et s'amorce une fois.

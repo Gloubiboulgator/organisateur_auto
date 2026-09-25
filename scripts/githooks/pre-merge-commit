@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Hook pre-merge-commit — le même filet que pre-commit, mais sur la FUSION.
+#
+# POURQUOI IL EXISTE. Le registre annonce qu'un filet dans un hook git « refuse le commit, la
+# fusion ou le push », et installer-hooks.sh pose `merge.ff false` en donnant pour motif que
+# sans commit de fusion, un hook de fusion ne se déclencherait jamais. Or aucun hook de fusion
+# n'était posé. Une fusion pouvait donc introduire dans la branche principale exactement ce que
+# le pre-commit refuse, sans qu'un seul contrôle tourne.
+#
+# POURQUOI IL DÉLÈGUE, ET NE RECOPIE RIEN. Deux implémentations de la même règle finissent par
+# diverger, ce que l'étalon de code interdit. Le pre-commit juge déjà l'INDEX, et l'index d'une
+# fusion est précisément l'arbre fusionné sur le point d'être commité.
+exec "$(dirname "$0")/pre-commit" "$@"

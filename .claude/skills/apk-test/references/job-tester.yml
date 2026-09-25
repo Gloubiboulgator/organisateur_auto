@@ -1,0 +1,118 @@
+# job-tester.yml — le job « tester dans un Android virtuel », gabarit du skill apk-test.
+#
+# À COPIER dans le workflow du projet, sous `jobs:`, et à adapter : le nom de l'artefact des
+# paquets, celui de l'artefact du parcours, le job amont. Chaque étape porte son pourquoi. Les
+# numéros de run cités sont ceux du projet d'origine, où chaque piège a coûté un run.
+#
+# CE QUE CE JOB ATTEND EN AMONT : un artefact portant DEUX paquets par mouture, l'app
+# (`*-<mouture>.apk`) et son robot de test (`*androidTest*<mouture>*.apk`), produit par un job
+# de compilation. Ici il s'appelle `compiler` et l'artefact `couples-test`.
+#
+# CE QUE CE JOB PRODUIT : un artefact `parcours` avec le film, les captures et le journal de
+# l'appareil, publié MÊME si les tests échouent, c'est justement là qu'on veut regarder.
+
+  tester:
+    name: "Tester dans un Android virtuel (parcours filmé + captures)"
+    needs: [compiler]
+    # Si le job de compilation peut être SAUTÉ (reprise d'un build existant), il faut `always()` :
+    # GitHub considère par défaut qu'un job sauté en amont annule tout l'aval, et une reprise ne
+    # testerait jamais rien. On exige alors « réussi OU sauté », ce qui n'exclut que l'échec.
+    if: always() && (needs.compiler.result == 'success' || needs.compiler.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # verifier-captures.sh compare l'état courant à un commit ANTÉRIEUR. Le clone par défaut
+          # n'en porte qu'un seul : la base ne se résolvait pas, et le contrôle imprimait un
+          # succès sans rien comparer (run 32254733286). Va de pair avec le `rev-parse --verify`
+          # du script, l'un sans l'autre laisse le trou ou crie sans cesse.
+          fetch-depth: 0
+
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: SDK Android (cmdline-tools + licences)
+        uses: android-actions/setup-android@v3
+
+      # ON NE RECOMPILE RIEN : les paquets viennent du job amont. Sans jeton de test, les scénarios
+      # authentifiés s'ignorent et l'artefact ne contiendra qu'une image.
+      - name: "Récupérer les couples installables"
+        uses: actions/download-artifact@v4
+        with:
+          name: couples-test
+          path: /tmp/couples
+
+      - name: "Ce qui va être installé"
+        run: find /tmp/couples -name '*.apk' | sed 's/^/  /'
+
+      # FAIRE DE LA PLACE (premier démarrage réel de l'émulateur, 2026-08-10). Le run a échoué sur
+      # « Not enough space to create userdata partition. Available: 5260 MB, need 7372 MB ». Le
+      # téléphone virtuel ne s'est jamais lancé, et l'outil qui lui parle a tourné en boucle
+      # pendant des minutes à chercher un appareil inexistant. La machine prêtée arrive avec des
+      # outils dont le projet n'a aucun usage : on les efface. Le `|| true` évite d'échouer si
+      # l'un d'eux n'existe pas sur cette image, et l'affichage montre ce qui a été gagné.
+      - name: "Faire de la place pour le téléphone virtuel"
+        run: |
+          echo "== avant =="; df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
+                      /opt/hostedtoolcache/CodeQL /usr/local/share/powershell \
+                      /usr/share/swift /usr/local/lib/node_modules || true
+          sudo apt-get clean || true
+          echo "== après =="; df -h / | tail -1
+
+      # ÉTAPE SÉPARÉE À DESSEIN. film_lisible() fait rougir quand ffprobe manque, parce qu'un
+      # contrôle qui saute en silence est un contrôle qu'on croit avoir. Un miroir apt
+      # indisponible doit se lire ici comme une panne d'outillage, pas comme un film illisible.
+      - name: "ffprobe (lisibilité du film)"
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Activer KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: "Lancer l'app dans l'émulateur et la filmer"
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          # `default`, AOSP pur, observé chez le projet d'origine sur trois cibles. `google_apis`
+          # tuait l'app en collatéral d'un ANR de `gms.persistent` (trois runs). `aosp_atd` ne
+          # rendait pas l'écran du tout, neuf captures noires identiques (run 32238947304). Sans
+          # aucune app Google, le premier cas devient impossible par construction (run de preuve
+          # 32251967011). C'est une observation datée, pas une loi : à revérifier si l'app
+          # dépend de services Google.
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          # Le défaut réclamait 7,4 Go, plus que ce que la machine avait de libre. Une app de
+          # quelques dizaines de mégaoctets tient large dans 4 Go.
+          disk-size: 4096M
+          disable-animations: false   # les animations SONT le sujet : flashs et fondus se voient
+          # UNE SEULE LIGNE, ET C'EST OBLIGATOIRE (run 31428980946). Cette action ne lance pas le
+          # bloc `script:` comme un programme : elle le découpe ligne par ligne et exécute chaque
+          # ligne isolément. Une boucle écrite ici sur plusieurs lignes se retrouve amputée dès
+          # la première. Le vrai script vit donc dans un fichier.
+          script: bash .claude/skills/apk-test/scripts/parcours-emulateur.sh "debug"
+        env:
+          # Le jeton passe par l'environnement plutôt que collé dans la ligne de commande : il
+          # n'apparaît ni dans le journal du run, ni dans la liste des processus du système.
+          JETON_TEST: ${{ secrets.TEST_APP_TOKEN }}
+
+      # Un écran touché par le lot sans capture correspondante est un écran livré sans avoir été
+      # vu. On compare les écrans modifiés depuis le dernier build à la liste des captures.
+      - name: "Chaque écran modifié a-t-il sa capture ?"
+        run: bash .claude/skills/apk-test/scripts/verifier-captures.sh /tmp/parcours
+
+      - name: "Publier le film du parcours et les captures"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: parcours
+          path: /tmp/parcours
+          if-no-files-found: warn

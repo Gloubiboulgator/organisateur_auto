@@ -1,0 +1,14 @@
+# Les prénoms que le contrôle 2 refuse, partout dans les fichiers suivis.
+#
+# POURQUOI UNE LISTE À PART. Écrits dans le contrôle, ils s'y dénonçaient eux-mêmes dès que le
+# balayage a dépassé les seuls fichiers Markdown. Le fichier est exclu du balayage, et lui seul.
+#
+# CETTE LISTE EST FIGÉE, elle appartient au noyau. Un projet qui veut en ajouter écrit les
+# siens dans scripts/prenoms-interdits-local.txt, que le contrôle lit en plus s'il existe. On
+# peut donc AJOUTER un prénom, jamais en retirer un.
+#
+# Une ligne par prénom. Le croisillon ouvre un commentaire, la ligne vide est ignorée.
+jonathan
+alice
+bob
+charlie

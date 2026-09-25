@@ -1,0 +1,94 @@
+{
+  "_lisez_moi": [
+    "Les gardes d'agent du noyau, déclarés dans le settings VERSIONNÉ, avec un chemin en",
+    "${CLAUDE_PROJECT_DIR}. C'est la forme à préférer : le fichier suit le clone, et aucun",
+    "geste d'installation n'est nécessaire sur une machine neuve.",
+    "",
+    "LE SessionStart EST LA PIÈCE QUI COMPTE LE PLUS. core.hooksPath est une configuration",
+    "LOCALE, perdue à chaque clone. Sans ce hook, une session fraîche n'a NI doc-lint, NI",
+    "code-lint, NI contrôle du noyau, et rien ne le signale. Avec lui, chaque session les",
+    "repose au démarrage, sans que personne y pense. C'est vérifié en session cloud, où les",
+    "hooks git posés par ce mécanisme refusent bien les commits fautifs.",
+    "",
+    "La portée cloud des gardes PreToolUse et Stop, elle, n'est PAS observée. Elle est",
+    "documentée. Ne pas l'affirmer sans preuve.",
+    "",
+    "CE FICHIER EST UN GABARIT. Il est posé une fois, puis il appartient au projet. Ajoutez-y",
+    "vos propres hooks librement. En contrepartie, un garde AJOUTÉ au noyau plus tard n'y",
+    "entrera pas tout seul : le README du noyau le dit, et sa mise à jour se fait à la main."
+  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git config core.hooksPath scripts/githooks || true; git config merge.ff false || true",
+            "statusMessage": "Pose les hooks du noyau"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/scripts/garde-arriere-plan.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/scripts/garde-perte-seche.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/scripts/garde-verifie-par-lecture.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Artifact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/scripts/garde-publication-non-sollicitee.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/scripts/garde-provenance-affirmee.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/scripts/garde-avis-non-sollicite.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/scripts/garde-incapacite-declaree.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/scripts/garde-offre-retrecie.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
