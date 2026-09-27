@@ -48,10 +48,22 @@ def motifs(racine):
 
 
 def indexes():
-    """Les chemins que le commit emporte, avec leur état."""
-    lignes = subprocess.run(['git', 'diff', '--cached', '--name-status'], check=True,
-                            capture_output=True, text=True).stdout.splitlines()
-    return [(l.split('\t')[0], l.split('\t')[-1]) for l in lignes if '\t' in l]
+    """Les chemins que le commit emporte, avec leur état.
+
+    LA LISTE SE LIT SÉPARÉE PAR DES ZÉROS. Sans `-z`, git entoure de guillemets un nom qui porte
+    un accent, et le code en octets. « scripts/généré.py » ne répondait alors plus au motif
+    « scripts/* », et le rappel se taisait sans rien dire. Trouvé en revue de code.
+    """
+    champs = subprocess.run(['git', 'diff', '--cached', '--name-status', '-z'], check=True,
+                            capture_output=True).stdout.decode('utf-8', 'replace').split('\0')
+    sortie, i = [], 0
+    while i < len(champs) and champs[i]:
+        etat = champs[i]
+        # Un renommage ou une copie porte deux chemins : l'ancien, puis le nouveau.
+        pas = 3 if etat[:1] in 'RC' else 2
+        sortie.append((etat, champs[i + pas - 1]))
+        i += pas
+    return sortie
 
 
 def main(argv):

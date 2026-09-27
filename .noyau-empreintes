@@ -1,5 +1,5 @@
 # Empreintes des fichiers posés par installer.sh. NE PAS ÉDITER À LA MAIN.
-# version-noyau: 508d430b0d4bbb6fba20e139374a95a1515cd5d2
+# version-noyau: dd56f2215be8cd602c9c5a5c20e74cd5fcae44c5
 # source-noyau: /home/user/structure_projet
 7dea977127aa9155927a270b0edbc75fee4c7d8515277265c6d658dfbc694194  .claude/rules/ton-des-echanges.md
 5301bec9475da95cf9da5dc7d67dfb29844b650b3582ba687c701213fbc4625f  .claude/skills/apk-test/SKILL.md
@@ -64,6 +64,6 @@ b421e92fa81b9dd8ce661be5783db85ec7f303f5402e11f779ef7f24c8d54a85  scripts/githoo
 12fcc6512d627254ac96905d97462966de879bf8cc3eb20eb3a358ec94067fa3  scripts/liens-glossaire.py
 9a8dc45607b2d3bf754c82fa7d86d95dd76db162d5cf0c92ed8b7b60086fe9c7  scripts/pousser.sh
 f94603bb0425dda0fdd19d9f6ae201037bcdbb0c749d6384c7753ce76d4e7198  scripts/prenoms-interdits.txt
-e573af5b30866f83c33c55522c5f2d437dea735d173fbcd535dde17e0cc6c510  scripts/rappel-guide.py
+57c2de94fa5bdfcb17ba74096fc51c83ffcf47d5ea9c3afc36c453cad848fc7e  scripts/rappel-guide.py
 4fb80294cc50fd30237956298c503058a07616487647ca351a3271a8c2fcfa58  scripts/registre-garde-fous.py
 6629e9dfb48d76ba48e5be92a9f0d84760f7f6b0a6b58ba0814ad57ce3254baf  scripts/verifier-noyau.sh
