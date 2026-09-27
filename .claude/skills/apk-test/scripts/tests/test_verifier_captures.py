@@ -112,6 +112,23 @@ def test_les_captures_sont_cherchees_dans_les_sous_dossiers(tmp_path):
     assert _lancer(depot, dossier).returncode == 0
 
 
+def test_un_ecran_supprime_n_exige_aucune_capture(tmp_path):
+    """Revue du 2026-09-26. `git diff --name-only` liste aussi les fichiers supprimés, et le
+    script exigeait la capture d'un écran qui n'existe plus. Le job restait rouge jusqu'au tag
+    suivant. L'activité vit dans un sous-paquet, où le shell n'étend pas le motif."""
+    depot = _depot(tmp_path, ("activity_creation.xml",))
+    paquet = depot / "app" / "src" / "main" / "java" / "fr" / "exemple"
+    paquet.mkdir(parents=True)
+    (paquet / "AncienActivity.kt").write_text("class AncienActivity\n", encoding="utf-8")
+    _git(depot, "add", "-A")
+    _git(depot, "commit", "-q", "-m", "ajoute l'ancien écran")
+    _git(depot, "rm", "-q", str(paquet / "AncienActivity.kt"))
+    _git(depot, "commit", "-q", "-m", "supprime l'ancien écran")
+    r = _lancer(depot, _captures(tmp_path, "01-demarrage.png"))
+    assert r.returncode == 0, "un écran supprimé ne peut pas être photographié"
+    assert "ancien" not in r.stdout
+
+
 def test_un_fragment_d_interface_exclu_par_le_projet_n_est_pas_exigible(tmp_path):
     """Une feuille ou un élément de liste n'est pas une destination. Le projet les nomme dans
     ECRANS_EXCLUS, vide par défaut : un projet neuf exige tout."""

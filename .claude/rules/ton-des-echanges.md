@@ -1,7 +1,7 @@
 # Le ton des échanges
 
 Le propriétaire de cette règle est [`../../docs/ton-des-echanges.md`](../../docs/ton-des-echanges.md).
-Les deux blocs ci-dessous en sont la part opérationnelle, partagée et vérifiée identique.
+Les trois blocs ci-dessous en sont la part opérationnelle, partagée et vérifiée identique.
 
 <!-- sync:ton -->
 **Le régime par défaut, à chaque terme technique.** Le mot exact reste écrit sous son vrai nom.
@@ -60,3 +60,26 @@ commit et descriptions de demandes de fusion exclus.
 - Étaler la liste de tout ce qui a été regardé. Seul ce qui change la décision s'écrit.
 - Rendre un résumé à la place de la réponse. La cible est courte, pas vide.
 <!-- /sync:longueur -->
+
+<!-- sync:questionnaire -->
+**Plus de trois questions, un questionnaire.** Une série de plus de trois questions à l'admin
+part d'un coup, dans une page à remplir. Jamais une par une, jamais en vrac dans une réponse.
+Trois questions ou moins se posent dans l'échange, une par une.
+
+**Ce que porte chaque question.**
+
+- Le contexte, assez pour trancher sans relire l'échange.
+- Trois réponses possibles.
+- La réponse recommandée, et sa raison en une ou deux phrases.
+- Une case libre, « Autre, ou précision à apporter ».
+
+**Ce que la page permet.** Répondre dedans, avec un enregistrement que l'agent relit lui-même.
+Ou télécharger les réponses dans un fichier, pour les renvoyer plus tard. Le modèle de page vit
+dans `modeles/questionnaire.html`.
+
+**Où elle vit.** Une page publiée dans la conversation quand l'outil le permet. Sinon, un
+fichier HTML autonome envoyé à l'admin, qui garde le téléchargement.
+
+**La page est temporaire.** Elle ne fait jamais foi. Chaque réponse se consigne ensuite là où le
+dépôt range ses décisions.
+<!-- /sync:questionnaire -->

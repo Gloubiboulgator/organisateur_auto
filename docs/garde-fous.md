@@ -97,6 +97,8 @@ chemin inattendu.
 | `scripts/garde-avis-non-sollicite.sh` | une recommandation dans la réponse, quand la demande n'en appelait aucune | bloque la fin du tour |
 | `scripts/garde-incapacite-declaree.sh` | une incapacité déclarée à compiler, tester ou déployer, sans nommer ce qui a été essayé | bloque la fin du tour |
 | `scripts/garde-offre-retrecie.sh` | une réponse qui accepte en nommant un geste plus étroit que l'offre, lue comme un accord entier | signale seulement |
+| `scripts/garde-sans-hooks.sh` | un geste git de l'agent qui saute les hooks, avec `--no-verify`, `commit -n` ou `core.hooksPath` désarmé | refuse l'appel d'outil |
+| `scripts/garde-depot-deploye.sh` | un geste git de l'agent qui fait quitter sa branche au répertoire que servent les units systemd, ou qui déplace cette branche. La liste des gestes vit en tête du script | refuse l'appel d'outil |
 
 ### Le contrôle du noyau
 

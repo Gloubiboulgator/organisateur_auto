@@ -22,7 +22,12 @@
 # reste à scripts/pousser-local.sh s'il existe. Sans ce fichier, il n'y a rien de coûteux à
 # protéger : lints, puis push direct.
 #
-# Usage :  scripts/pousser.sh [remote] [branche]     (défaut : origin, branche par défaut du remote)
+# Usage :  scripts/pousser.sh [remote] [branche]     (défaut : origin, la branche courante)
+#
+# LA BRANCHE PAR DÉFAUT EST LA COURANTE, PAS CELLE DU REMOTE (revue du 2026-09-26). Le défaut
+# visait la branche par défaut du remote, donc main. Lancé sans argument depuis une branche de
+# travail, le script poussait main, et une session ne pousse jamais main. Soit les commits de main
+# local partaient sans garde, soit la branche de travail restait sur place, en silence.
 set -euo pipefail
 
 remote="${1:-origin}"
@@ -30,7 +35,13 @@ remote="${1:-origin}"
 # la pipeline malgré le « sed » qui suit : le « || true » l'assume, « defaut » retombe sur main.
 defaut=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||' || true)
 defaut="${defaut:-main}"
-branche="${2:-$defaut}"
+courante=$(git symbolic-ref --short -q HEAD || true)
+if [ -z "${2:-}" ] && [ -z "$courante" ]; then
+    echo "pousser.sh : REFUSÉ — HEAD est détaché, il n'y a pas de branche courante à pousser." >&2
+    echo "             Bascule sur une branche, ou nomme-la : scripts/pousser.sh origin <branche>" >&2
+    exit 1
+fi
+branche="${2:-$courante}"
 
 root=$(git rev-parse --show-toplevel)
 cd "$root"
