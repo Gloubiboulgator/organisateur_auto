@@ -1,0 +1,305 @@
+<!doctype html>
+<!--
+  Modèle de questionnaire, pour une série de plus de trois questions à l'admin.
+  La règle vit dans docs/ton-des-echanges.md, section « Plus de trois questions à poser ».
+
+  Pour s'en servir, copier ce fichier, puis changer trois choses.
+  1. Le titre de la page et le chapeau.
+  2. La constante SERIE, qui nomme la série et le fichier téléchargé.
+  3. Le tableau QUESTIONS, une entrée par question.
+
+  Publié comme page de conversation, déclarer les capacités db et downloads.
+  Les réponses s'écrivent alors dans la collection « reponses », un document par question.
+  Hors publication, le fichier s'ouvre seul. Il garde « Télécharger », par un lien local,
+  « Copier », et le brouillon du navigateur.
+-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Questionnaire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap">
+<style>
+:root{
+  --fond:#f3f4f8; --papier:#ffffff; --encre:#1b2138; --doux:#5b6384; --trait:#d9dcea;
+  --accent:#2f4bb8; --accent-fond:#e7ebfb; --reco:#1f7a52; --reco-fond:#e3f3eb; --alerte:#9a5b00;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --fond:#10131f; --papier:#181c2c; --encre:#e6e8f2; --doux:#9aa1bf; --trait:#2b3148;
+    --accent:#8fa4ff; --accent-fond:#222a4a; --reco:#6fd3a4; --reco-fond:#16302a; --alerte:#f0b35a;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --fond:#10131f; --papier:#181c2c; --encre:#e6e8f2; --doux:#9aa1bf; --trait:#2b3148;
+  --accent:#8fa4ff; --accent-fond:#222a4a; --reco:#6fd3a4; --reco-fond:#16302a; --alerte:#f0b35a;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--fond);color:var(--encre);font:16px/1.55 "Atkinson Hyperlegible",system-ui,sans-serif;padding-inline:16px;padding-block:24px 96px}
+.page{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2{font-family:"Bricolage Grotesque","Atkinson Hyperlegible",system-ui,sans-serif;text-wrap:balance;margin:0}
+h1{font-size:1.9rem;line-height:1.15}
+h2{font-size:1.25rem;line-height:1.25}
+.chapo{color:var(--doux);margin:0;max-width:65ch}
+.barre{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--papier);border:1px solid var(--trait);border-radius:10px;padding:12px 14px;position:sticky;top:env(safe-area-inset-top,0px);z-index:2}
+.compte{font-variant-numeric:tabular-nums;font-weight:700}
+.etat{color:var(--doux);font-size:.9rem}
+.boutons{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;font-weight:700;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--papier);padding:8px 14px;cursor:pointer}
+button.second{background:transparent;color:var(--accent)}
+button:focus-visible,textarea:focus-visible,input:focus-visible+span{outline:3px solid var(--accent);outline-offset:2px}
+.q{background:var(--papier);border:1px solid var(--trait);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.q header{display:flex;gap:12px;align-items:baseline}
+.num{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:700;color:var(--accent);background:var(--accent-fond);border-radius:6px;padding:2px 8px;font-size:.95rem;flex:none}
+.contexte{margin:0;max-width:65ch}
+.contexte p{margin:0 0 8px}
+.contexte p:last-child{margin:0}
+.options{display:flex;flex-direction:column;gap:8px;border:0;margin:0;padding:0}
+.opt{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;border:1px solid var(--trait);border-radius:10px;padding:10px 12px;cursor:pointer}
+.opt:has(input:checked){border-color:var(--accent);background:var(--accent-fond)}
+.opt input{margin-top:5px;accent-color:var(--accent)}
+.opt b{display:block}
+.pastille{display:inline-block;font-size:.75rem;letter-spacing:.04em;text-transform:uppercase;font-weight:700;color:var(--reco);background:var(--reco-fond);border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:1px}
+.pourquoi{border-left:3px solid var(--reco);background:var(--reco-fond);padding:10px 12px;border-radius:0 8px 8px 0;font-size:.95rem}
+.pourquoi strong{color:var(--reco)}
+label.libre{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:.95rem}
+textarea{font:inherit;font-weight:400;color:var(--encre);background:var(--fond);border:1px solid var(--trait);border-radius:8px;padding:8px 10px;min-height:70px;resize:vertical;width:100%}
+.note{color:var(--doux);font-size:.85rem;margin:0}
+.fait{color:var(--reco);font-weight:700;font-size:.85rem}
+@media (prefers-reduced-motion:no-preference){.opt{transition:background .15s,border-color .15s}}
+</style>
+
+<div class="page">
+  <header>
+    <h1>Titre de la série</h1>
+    <p class="chapo">Une phrase qui dit d'où viennent ces questions. Coche une réponse ou écris la tienne. La barre du haut dit si l'agent relit tes réponses d'ici, ou s'il faut les lui renvoyer.</p>
+  </header>
+
+  <div class="barre" role="region" aria-label="Avancement">
+    <div><span class="compte" id="compte">0</span> <span class="etat" id="etat">répondues</span><div class="etat" id="mode" aria-live="polite">Recherche de l'enregistrement partagé…</div></div>
+    <div class="boutons">
+      <button type="button" id="telecharger" class="second">Télécharger mes réponses</button>
+      <button type="button" id="copier" class="second">Copier</button>
+    </div>
+  </div>
+
+  <main id="liste" class="page" style="gap:16px"></main>
+  <p class="note">Enregistrement automatique à chaque réponse. Si l'enregistrement partagé n'est pas disponible, les réponses restent dans ce navigateur, et le bouton « Télécharger » ou « Copier » te permet de les renvoyer.</p>
+</div>
+
+<script>
+const SERIE = "exemple";
+const QUESTIONS = [
+  {id:"Q1", titre:"Exemple de question, à remplacer",
+   contexte:["Le contexte, assez pour trancher sans relire l'échange.",
+             "Un second paragraphe si besoin."],
+   options:[
+     {code:"A", titre:"Première réponse", detail:"Ce qu'elle implique."},
+     {code:"B", titre:"Deuxième réponse", detail:"Ce qu'elle implique."},
+     {code:"C", titre:"Troisième réponse", detail:"Ce qu'elle implique."}],
+   reco:"B",
+   pourquoi:"La raison de la recommandation, en une ou deux phrases."}
+];
+
+const cle = "questionnaire-" + SERIE;
+let reponses = {};
+try { reponses = JSON.parse(localStorage.getItem(cle) || "{}"); } catch (e) { reponses = {}; }
+let db = null;
+const minuteurs = {};
+const retentes = {};
+
+function el(tag, attrs, ...enfants){
+  const n = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs || {})) {
+    if (k === "class") n.className = v; else if (k === "text") n.textContent = v; else n.setAttribute(k, v);
+  }
+  for (const e of enfants) if (e) n.append(e);
+  return n;
+}
+
+function rendre(){
+  const liste = document.getElementById("liste");
+  liste.textContent = "";
+  QUESTIONS.forEach(q => {
+    const r = reponses[q.id] || {};
+    const carte = el("section", {class:"q", id:"q-"+q.id, "aria-labelledby":"t-"+q.id});
+    carte.append(el("header", null, el("span", {class:"num", text:q.id}), el("h2", {id:"t-"+q.id, text:q.titre})));
+    const ctx = el("div", {class:"contexte"});
+    q.contexte.forEach(p => ctx.append(el("p", {text:p})));
+    carte.append(ctx);
+    const fs = el("fieldset", {class:"options"});
+    fs.append(el("legend", {class:"note", text:q.options.length + " réponses possibles"}));
+    q.options.forEach(o => {
+      const input = el("input", {type:"radio", name:"choix-"+q.id, id:"choix-"+q.id+"-"+o.code, value:o.code});
+      if (r.choix === o.code) input.checked = true;
+      input.addEventListener("change", () => noter(q.id, {choix:o.code}));
+      const titre = el("b", {text:o.code+". "+o.titre});
+      if (o.code === q.reco) titre.append(el("span", {class:"pastille", text:"Recommandé"}));
+      fs.append(el("label", {class:"opt", for:"choix-"+q.id+"-"+o.code}, input, el("span", null, titre, el("span", {text:o.detail}))));
+    });
+    carte.append(fs);
+    const pq = el("div", {class:"pourquoi"});
+    pq.append(el("strong", {text:"Pourquoi "+q.reco+" : "}), document.createTextNode(q.pourquoi));
+    carte.append(pq);
+    const ta = el("textarea", {id:"autre-"+q.id, placeholder:"Autre réponse, ou précision à apporter"});
+    ta.value = r.autre || "";
+    ta.addEventListener("input", () => noter(q.id, {autre:ta.value}, true));
+    carte.append(el("label", {class:"libre", for:"autre-"+q.id}, document.createTextNode("Autre, ou précision à apporter"), ta));
+    carte.append(el("span", {class:"fait", id:"fait-"+q.id, "aria-live":"polite"}));
+    liste.append(carte);
+  });
+  compter();
+}
+
+function compter(){
+  const n = QUESTIONS.filter(q => { const r = reponses[q.id]; return r && (r.choix || (r.autre||"").trim()); }).length;
+  document.getElementById("compte").textContent = n + " sur " + QUESTIONS.length;
+}
+
+function noter(id, patch, differe){
+  // L'heure de chaque réponse départage, au chargement, ce navigateur et la base.
+  reponses[id] = Object.assign({}, reponses[id], patch, {maj:new Date().toISOString()});
+  try { localStorage.setItem(cle, JSON.stringify(reponses)); } catch (e) {}
+  document.getElementById("etat").textContent = "répondues";
+  compter();
+  clearTimeout(minuteurs[id]);
+  minuteurs[id] = setTimeout(() => envoyer(id), differe ? 700 : 0);
+}
+
+async function envoyer(id){
+  const marque = document.getElementById("fait-"+id);
+  // Tant que l'enregistrement partagé n'a pas répondu, la réponse attend dans ce navigateur.
+  // Le chargement l'enverra dès qu'il arrive.
+  if (!db) { marque.textContent = "Gardé dans ce navigateur"; return; }
+  const r = reponses[id] || {};
+  try {
+    await db.doc("reponses/"+id).set({question:id, choix:r.choix || "", autre:r.autre || "",
+                                      maj:r.maj || new Date().toISOString()});
+    marque.textContent = "Enregistré";
+    retentes[id] = 0;
+  } catch (e) {
+    const code = e && e.code;
+    // Un refus de droits (« invalid_argument »), une capacité retirée ou jamais accordée sont
+    // définitifs : réessayer n'y changerait rien. Le reste se retente une fois, seul.
+    if (code === "invalid_argument" || code === "revoked" || code === "not_granted") {
+      marque.textContent = "Pas enregistré : télécharge ou copie tes réponses";
+    } else if (!retentes[id]) {  // un seul nouvel essai : le compteur ne revient à zéro qu'au succès
+      retentes[id] = 1;
+      marque.textContent = "Pas enregistré, nouvel essai dans un instant";
+      setTimeout(() => envoyer(id), 3000);
+    } else {
+      marque.textContent = "Pas enregistré : télécharge ou copie tes réponses";
+    }
+  }
+}
+
+// Remet les valeurs dans les champs existants, sans reconstruire les cartes : une saisie en
+// cours garde son curseur, et les marques « Enregistré » restent.
+function appliquer(id){
+  const r = reponses[id] || {};
+  document.querySelectorAll('input[name="choix-'+id+'"]').forEach(radio => { radio.checked = radio.value === r.choix; });
+  const ta = document.getElementById("autre-"+id);
+  if (ta && document.activeElement !== ta) ta.value = r.autre || "";
+}
+
+function texteExport(){
+  const lignes = ["# Réponses, série " + SERIE, ""];
+  QUESTIONS.forEach(q => {
+    const r = reponses[q.id] || {};
+    const o = q.options.find(x => x.code === r.choix);
+    lignes.push("## " + q.id + ". " + q.titre);
+    lignes.push("Choix : " + (o ? o.code + ". " + o.titre : "aucun"));
+    if ((r.autre||"").trim()) lignes.push("Précision : " + r.autre.trim());
+    lignes.push("");
+  });
+  return lignes.join("\n");
+}
+
+document.getElementById("copier").addEventListener("click", async () => {
+  const t = texteExport();
+  try { await navigator.clipboard.writeText(t); document.getElementById("etat").textContent = "répondues, copiées"; }
+  catch (e) {
+    // Presse-papiers refusé : une seule zone à copier, remise à jour à chaque clic.
+    let ta = document.getElementById("export");
+    if (!ta) { ta = el("textarea", {id:"export", "aria-label":"Réponses à copier"}); document.getElementById("liste").prepend(ta); }
+    ta.value = t; ta.select();
+  }
+});
+
+// Le téléchargement marche partout. Page publiée : par la capacité downloads. Fichier ouvert
+// seul, ou capacité pas encore prête : par un lien local.
+let downloads = null;
+function telechargerLocal(){
+  const url = URL.createObjectURL(new Blob([texteExport()], {type:"text/markdown;charset=utf-8"}));
+  const a = el("a", {href:url, download:"reponses-" + SERIE + ".md"});
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+// Dans une page publiée, un lien local ne télécharge rien : seule la capacité le peut. Le
+// bouton le dit donc au lieu de se taire.
+const dansLaPage = !!(window.claude && window.claude.use);
+function direEtat(texte){ document.getElementById("etat").textContent = texte; }
+document.getElementById("telecharger").addEventListener("click", async () => {
+  if (!dansLaPage) { telechargerLocal(); return; }
+  if (!downloads) { direEtat("répondues, téléchargement indisponible ici : utilise « Copier »"); return; }
+  try { await downloads.save({filename:"reponses-" + SERIE + ".md", data:texteExport()}); }
+  catch (e) {
+    const code = e && e.code;
+    if (code === "declined") return;
+    direEtat(code === "rate_limited" ? "répondues, réessaie le téléchargement dans un instant"
+                                     : "répondues, téléchargement indisponible : utilise « Copier »");
+  }
+});
+
+function direMode(texte){ document.getElementById("mode").textContent = texte; }
+const HORS_PARTAGE = "Réponses gardées dans ce navigateur : renvoie-les par « Télécharger » ou « Copier ».";
+
+rendre();
+
+(async () => {
+  if (!window.claude || !window.claude.use) { direMode(HORS_PARTAGE); return; }
+  // Les deux capacités se demandent ensemble : l'une ne fait pas attendre l'autre.
+  const [d, base] = await Promise.all([window.claude.use("downloads"), window.claude.use("db")]);
+  downloads = d;
+  db = base;
+  if (!db) { direMode(HORS_PARTAGE); return; }
+  let snap = null;
+  for (const essai of [1, 2]) {  // le contrat demande un second essai sur « unavailable »
+    try { snap = await db.collection("reponses").get(); break; }
+    catch (e) { if (!(e && e.code === "unavailable") || essai === 2) break; }
+  }
+  if (!snap) {
+    db = null;
+    direMode("Lecture de l'enregistrement impossible. " + HORS_PARTAGE);
+    return;
+  }
+  direMode("Réponses enregistrées ici, l'agent les relit.");
+  // La réponse la plus récente gagne, qu'elle soit dans ce navigateur ou dans la base. Celle
+  // de ce navigateur qui est plus récente, ou que la base n'a pas, part maintenant.
+  const enBase = {};
+  snap.docs.forEach(doc => { enBase[doc.id] = doc.data() || {}; });
+  QUESTIONS.forEach(q => {
+    const local = reponses[q.id], v = enBase[q.id];
+    const localRempli = local && (local.choix || (local.autre||"").trim());
+    if (!localRempli) {
+      if (v) { reponses[q.id] = {choix:v.choix || "", autre:v.autre || "", maj:v.maj || ""}; appliquer(q.id); }
+      return;
+    }
+    if (!v) { envoyer(q.id); return; }
+    const pareil = (local.choix || "") === (v.choix || "") && (local.autre || "") === (v.autre || "");
+    if (pareil) return;  // rien à écrire : la base a déjà cette réponse
+    // Une réponse sans heure vient d'une version plus ancienne de cette page : elle a été donnée
+    // dans ce navigateur, et elle y reste la plus récente.
+    if (local.maj && (v.maj || "") > local.maj) {
+      reponses[q.id] = {choix:v.choix || "", autre:v.autre || "", maj:v.maj || ""};
+      appliquer(q.id);
+    } else {
+      envoyer(q.id);
+    }
+  });
+  try { localStorage.setItem(cle, JSON.stringify(reponses)); } catch (e) {}
+  compter();
+})();
+</script>

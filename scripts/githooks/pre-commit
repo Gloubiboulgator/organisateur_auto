@@ -100,3 +100,7 @@ if [ "$touche_code" -eq 1 ]; then
 else
     echo "commit doc-only : code-lint sauté"
 fi
+
+# LE RAPPEL DE RELECTURE DU GUIDE, en dernier, et il ne fait jamais échouer le commit. Il se tait
+# tant que le projet n'a pas de guide/backlog.md. La règle vit dans docs/systeme-documentaire.md.
+python3 "$scene/scripts/rappel-guide.py" "$scene" || true

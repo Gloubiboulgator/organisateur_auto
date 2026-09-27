@@ -154,8 +154,9 @@ un test qu'il écrit lui-même sur sa propre croyance, et ce test reste vert quo
    ne la blanchit pas.
 3. **Ne jamais combler un trou de spec par déduction.** Un trou est une décision de l'admin.
    Elle se pose en question courte, puis s'écrit dans la spec avant d'être codée. Les trous
-   découverts en route se listent d'abord, puis se posent **une par une**. On les pose toutes,
-   jamais en un bloc à trancher d'un coup.
+   découverts en route se listent d'abord, et on les pose toutes. Trois ou moins se posent **une
+   par une**. Au-delà, elles partent ensemble dans un questionnaire, décrit dans
+   [`docs/ton-des-echanges.md`](docs/ton-des-echanges.md). Jamais en vrac dans une réponse.
 4. **Ne jamais coder un changement graphique sans maquette validée.** Tout ce qui se voit se
    montre d'abord et s'approuve avant le code. La maquette montre des cas réalistes et
    contrastés, dont ceux qui ne portent **pas** la marque. C'est là que les erreurs se voient.

@@ -68,8 +68,11 @@ fi
 
 # Les écrans touchés, d'après les motifs du projet. ECRANS_GLOBS est une liste de pathspecs git
 # séparés par des espaces, volontairement non guillemetée ici pour que git les reçoive un à un.
+# `--diff-filter=d` écarte les écrans SUPPRIMÉS depuis la base. Un écran qui n'existe plus ne
+# peut pas être photographié, et l'exiger rougissait le job jusqu'au tag suivant (revue du
+# 2026-09-26).
 # shellcheck disable=SC2086
-modifies="$(git -C "$racine" diff --name-only "$base" -- $ECRANS_GLOBS 2>/dev/null || true)"
+modifies="$(git -C "$racine" diff --name-only --diff-filter=d "$base" -- $ECRANS_GLOBS 2>/dev/null || true)"
 
 if [ -z "$modifies" ]; then
     # On nomme la base RÉSOLUE, pas l'expression demandée : c'est ce qui distingue « j'ai comparé

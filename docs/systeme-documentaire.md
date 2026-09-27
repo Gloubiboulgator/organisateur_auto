@@ -52,6 +52,7 @@ peut pas diverger en silence.
 | les croyances sur le monde extérieur | [`observations-terrain.md`](observations-terrain.md) | le code porte l'étiquette |
 | la définition brève d'un terme | le glossaire | les fiches techniques l'expliquent |
 | ce qui protège le projet | [`garde-fous.md`](garde-fous.md) | rien ne le recopie |
+| ce que le projet apprend à qui le découvre | le guide HTML, rédigé sous `guide/` | ses faits sont lus dans le code |
 
 **Spec ou doc, un seul test.** Un fichier va dans `specs/` seulement si un constructeur l'ouvre
 pour savoir **quoi coder**. C'est le comportement d'une
@@ -72,6 +73,21 @@ découpage.
 
 On n'invente **jamais** une catégorie pour caser un orphelin. S'il n'a pas de lecteur, il
 n'existe pas.
+
+## Le guide HTML et sa relecture
+
+Un projet équipé a, à terme, un guide HTML qui apprend comment il fonctionne. Il se crée avec le
+skill `/guide`, quand l'item de roadmap posé à l'installation arrive en tête.
+
+**Un changement qui touche une mécanique expliquée entraîne une relecture.** Au commit,
+`scripts/rappel-guide.py` nomme ce qui est touché, en une ligne, sans rien bloquer.
+
+- Le guide est encore juste : rien à faire.
+- Il ne l'est plus : on ne le corrige pas dans la foulée. Une ligne va dans `guide/backlog.md`,
+  avec ce qui a changé et la date.
+
+**Une ligne du backlog du guide n'est jamais une urgence.** Elle se traite quand on a le temps.
+L'agent ne la mentionne pas de lui-même, ni en fin de tour ni comme prochaine étape.
 
 ## Alimenter le journal des livraisons
 

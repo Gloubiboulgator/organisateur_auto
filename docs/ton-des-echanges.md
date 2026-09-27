@@ -4,11 +4,11 @@
 > droit d'attendre.
 >
 > **Ce que ce fichier fait, et ne fait pas.** Il fait foi sur le niveau de technicité des
-> réponses, et sur leur longueur. Il ne gouverne ni la doc écrite, ni la provenance des
+> réponses, sur leur longueur, et sur la façon de poser une série de questions. Il ne gouverne ni la doc écrite, ni la provenance des
 > affirmations, ni le ton du produit face à un utilisateur. Ces trois sujets ont leur propre
 > propriétaire.
 >
-> **Le rappel chargé à chaque session.** Les deux règles opératoires sont recopiées dans
+> **Le rappel chargé à chaque session.** Les trois règles opératoires sont recopiées dans
 > `.claude/rules/ton-des-echanges.md`, dans des blocs synchronisés. Un contrôle refuse le commit
 > si les copies diffèrent d'un caractère. Le fichier d'instructions, lui, ne porte qu'un renvoi.
 
@@ -98,6 +98,35 @@ commit et descriptions de demandes de fusion exclus.
 - Étaler la liste de tout ce qui a été regardé. Seul ce qui change la décision s'écrit.
 - Rendre un résumé à la place de la réponse. La cible est courte, pas vide.
 <!-- /sync:longueur -->
+
+## Plus de trois questions à poser
+
+Poser une longue série une question par tour coûte un aller-retour par question. L'admin perd
+aussi la vue d'ensemble, et tranche chaque point sans voir les suivants. Poser la série en vrac
+dans une réponse donne l'inverse, un mur qu'on ne sait pas remplir.
+
+<!-- sync:questionnaire -->
+**Plus de trois questions, un questionnaire.** Une série de plus de trois questions à l'admin
+part d'un coup, dans une page à remplir. Jamais une par une, jamais en vrac dans une réponse.
+Trois questions ou moins se posent dans l'échange, une par une.
+
+**Ce que porte chaque question.**
+
+- Le contexte, assez pour trancher sans relire l'échange.
+- Trois réponses possibles.
+- La réponse recommandée, et sa raison en une ou deux phrases.
+- Une case libre, « Autre, ou précision à apporter ».
+
+**Ce que la page permet.** Répondre dedans, avec un enregistrement que l'agent relit lui-même.
+Ou télécharger les réponses dans un fichier, pour les renvoyer plus tard. Le modèle de page vit
+dans `modeles/questionnaire.html`.
+
+**Où elle vit.** Une page publiée dans la conversation quand l'outil le permet. Sinon, un
+fichier HTML autonome envoyé à l'admin, qui garde le téléchargement.
+
+**La page est temporaire.** Elle ne fait jamais foi. Chaque réponse se consigne ensuite là où le
+dépôt range ses décisions.
+<!-- /sync:questionnaire -->
 
 ## Pourquoi garder le mot exact plutôt qu'une image
 
