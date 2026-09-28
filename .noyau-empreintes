@@ -1,5 +1,5 @@
 # Empreintes des fichiers posés par installer.sh. NE PAS ÉDITER À LA MAIN.
-# version-noyau: 0cacdd0de22a171de61a865276f78d91cfefc6db
+# version-noyau: 8fbf81186a7197a7782382536f9e291c9e105f1d
 # source-noyau: /home/user/structure_projet
 7dea977127aa9155927a270b0edbc75fee4c7d8515277265c6d658dfbc694194  .claude/rules/ton-des-echanges.md
 5301bec9475da95cf9da5dc7d67dfb29844b650b3582ba687c701213fbc4625f  .claude/skills/apk-test/SKILL.md
@@ -44,7 +44,7 @@ fc37ab01afa2bb9ad20681413cce2cb60e338868d8e3b45c541d12df1029d694  scripts/code-l
 99f091575a320748b9d8d530d45ab896c8399e16fb0df35cfbec826a546eec5b  scripts/corpus.py
 d86a9387d1117204830c9c54061fea834dc6cc2d9e25c686aa0947c2bb1caa7c  scripts/dette-code.txt
 03362eaa7c3322f1b995b4dee836387f419cece4c940f8c3021ab0e61ff5e3f5  scripts/dette-doc.txt
-a5c37afb22470f7a5ce332823e195d9123980e4a73e26fbdba68a13514d43921  scripts/doc-lint.sh
+ece85a9c34da4c7d5d96eab89210aa7a9268ff961fbe7db5c1b27d37cc83ab62  scripts/doc-lint.sh
 685ab0ab34ca5e3d9d500ea80221f7d77571a9a6063ffb49024f0a0abbad99e9  scripts/doc-mesure.py
 5324161e9d65b44fac30083b50cef8ed031b5acfee10246c676eb60eeb1e3576  scripts/etalon_prose.py
 8a108b42e3df3caaa326d0c46099b0fb25188cd3e92a032e071ee1c88d22ced9  scripts/garde-arriere-plan.sh
@@ -56,7 +56,7 @@ a5c37afb22470f7a5ce332823e195d9123980e4a73e26fbdba68a13514d43921  scripts/doc-li
 b34cae8606119c6940f19f5fefecc1b26ca34a7611cbc43c3a463fca9187eab0  scripts/garde-provenance-affirmee.sh
 22febcf056dafaa267f69a2966b3f52c23ea492777720986dd082d51345e78d0  scripts/garde-publication-non-sollicitee.sh
 ff7e7114470147f7f760dc0dc45bd0a35314377c1daaacf87fd57af71071f49c  scripts/garde-sans-hooks.sh
-2be37d88da6841aa42a45970ac17e1e93a1b9d6d291e112fed3469929aa2f381  scripts/garde-verifie-par-lecture.sh
+b843c7e2e594d70fce7d6be2df556a53bcfd3e2750042aa5985dc1ebe632bd89  scripts/garde-verifie-par-lecture.sh
 2ec8b6bc9942fa3ae092ed3cdf354736f67f6b10a400e0c3dcc5f5485f7c2489  scripts/githooks/pre-commit
 b421e92fa81b9dd8ce661be5783db85ec7f303f5402e11f779ef7f24c8d54a85  scripts/githooks/pre-merge-commit
 35ce41de2c3d1b2c5bbc913f9f6304ebd5b45a45998fa64ebef25dc16239feb6  scripts/githooks/pre-push

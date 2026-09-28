@@ -669,6 +669,10 @@ out=$(python3 - 2>&1 <<'PY22'
 import re, pathlib, subprocess
 REG = 'docs/observations-terrain.md'
 texte = pathlib.Path(REG).read_text(encoding='utf-8')
+# UN COMMENTAIRE HTML N'EST PAS UNE FICHE. Le gabarit y range une fiche d'exemple, exprès hors
+# du registre, et le découpage la lisait quand même. Une étiquette qui en reprenait la clé
+# trouvait donc sa fiche (revue du 2026-09-27).
+texte = re.sub(r'<!--.*?-->', '', texte, flags=re.S)
 # Une fiche = « ### <clé> » (le titre peut porter un suffixe « — RÉFUTÉ le … »).
 fiches = {}
 for bloc in re.split(r'^### ', texte, flags=re.M)[1:]:

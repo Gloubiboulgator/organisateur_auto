@@ -320,7 +320,9 @@ for m in ETIQUETTE.finditer(texte):
     depart = m.start() + lu.end()
     suivant = re.match(r"\s*(?:(?:la|le|les|l[’\x27])\s*)?([\w’\x27./\-]+)(?:\s+([\w’\x27./\-]+))?",
                        texte[depart:])
-    mots = [g for g in (suivant.groups() if suivant else ()) if g]
+    # Le point qui finit la phrase n appartient pas au mot lu. Gardé, il faisait de
+    # « CHANGELOG. » autre chose qu un document, et l alerte tombait à tort (revue du 2026-09-27).
+    mots = [g.rstrip(".") for g in (suivant.groups() if suivant else ()) if g]
     objet = mots[0] if mots else ""
     if re.fullmatch(r"fichiers?", objet, re.I):
         objet = mots[1] if len(mots) > 1 else ""
