@@ -283,11 +283,14 @@ rendre();
   QUESTIONS.forEach(q => {
     const local = reponses[q.id], v = enBase[q.id];
     const localRempli = local && (local.choix || (local.autre||"").trim());
-    if (!localRempli) {
+    // Une réponse vidée à la main garde son heure : c'est une réponse, et elle se compare comme
+    // les autres. La traiter comme absente rendait au rechargement le texte que l'admin avait
+    // effacé, si l'envoi du vide avait échoué (revue de code du 2026-09-27).
+    if (!localRempli && !(local && local.maj)) {
       if (v) { reponses[q.id] = {choix:v.choix || "", autre:v.autre || "", maj:v.maj || ""}; appliquer(q.id); }
       return;
     }
-    if (!v) { envoyer(q.id); return; }
+    if (!v) { if (localRempli) envoyer(q.id); return; }
     const pareil = (local.choix || "") === (v.choix || "") && (local.autre || "") === (v.autre || "");
     if (pareil) return;  // rien à écrire : la base a déjà cette réponse
     // Une réponse sans heure vient d'une version plus ancienne de cette page : elle a été donnée
