@@ -19,7 +19,8 @@ vert quoi qu'il arrive, y compris quand le monde extérieur a changé.
 - `@terrain <clé>` quand elle a été **observée**, par une capture ou par l'admin.
 - `@suppose <clé>` quand elle ne l'a pas été.
 
-**Ici**, chaque clé a sa fiche. Quatre lignes obligatoires, que le contrôle vérifie.
+**Ici**, chaque clé a sa fiche. Trois lignes obligatoires, que le contrôle vérifie, et une
+quatrième facultative.
 
 | Ligne | Ce qu'elle dit |
 |---|---|
