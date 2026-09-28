@@ -1,5 +1,5 @@
 # Empreintes des fichiers posés par installer.sh. NE PAS ÉDITER À LA MAIN.
-# version-noyau: dd56f2215be8cd602c9c5a5c20e74cd5fcae44c5
+# version-noyau: 0cacdd0de22a171de61a865276f78d91cfefc6db
 # source-noyau: /home/user/structure_projet
 7dea977127aa9155927a270b0edbc75fee4c7d8515277265c6d658dfbc694194  .claude/rules/ton-des-echanges.md
 5301bec9475da95cf9da5dc7d67dfb29844b650b3582ba687c701213fbc4625f  .claude/skills/apk-test/SKILL.md
@@ -37,7 +37,7 @@ b2b76e24f9784f350c411eb69f3c8086c2b28dcef6cff374c87950b38559e221  docs/ton-des-e
 9d09b040ed7b86c27a2f92d80f74ec01d81500c7d58c853f880213d298699504  modeles/essai-garde-perte-seche.sh
 6b3cec1dac83c8745b5300f956bffae7355e23c952b11d24d61f4f175f28cac3  modeles/essai-garde-perte-seche.txt
 31e3635a7d5a41042064327f8c06f15b990ff1cb1fa3e04132a9e618f9c08972  modeles/prompt-audit-lisibilite.txt
-00d04392a2a8d474f8022afc26652a29a4f970c5c579ee734b18a6f310e825df  modeles/questionnaire.html
+153ee1d37f9db96fbd6f80324590344a985da3a95c7adf9f8c121236c5e110c8  modeles/questionnaire.html
 6e1c38f041171039bb4a1b4f1060cb027c7c5497eb4bc5973b78722d7d952dda  scripts/blocs_markdown.py
 fc37ab01afa2bb9ad20681413cce2cb60e338868d8e3b45c541d12df1029d694  scripts/code-lint.sh
 19abdfecd0e8e10f8288394eca1ca0d99a5b81b8ac79caafd8b6c3397558ff30  scripts/code-mesure.py
@@ -55,7 +55,7 @@ a5c37afb22470f7a5ce332823e195d9123980e4a73e26fbdba68a13514d43921  scripts/doc-li
 2fb6b963726cb2119115befc4a532a2f75e20483db1211f3c702883576e9be2f  scripts/garde-perte-seche.sh
 b34cae8606119c6940f19f5fefecc1b26ca34a7611cbc43c3a463fca9187eab0  scripts/garde-provenance-affirmee.sh
 22febcf056dafaa267f69a2966b3f52c23ea492777720986dd082d51345e78d0  scripts/garde-publication-non-sollicitee.sh
-507b649b32cfca83890e41ac6d53e6d3ab8e5630750ef1ac371854481f042dbd  scripts/garde-sans-hooks.sh
+ff7e7114470147f7f760dc0dc45bd0a35314377c1daaacf87fd57af71071f49c  scripts/garde-sans-hooks.sh
 2be37d88da6841aa42a45970ac17e1e93a1b9d6d291e112fed3469929aa2f381  scripts/garde-verifie-par-lecture.sh
 2ec8b6bc9942fa3ae092ed3cdf354736f67f6b10a400e0c3dcc5f5485f7c2489  scripts/githooks/pre-commit
 b421e92fa81b9dd8ce661be5783db85ec7f303f5402e11f779ef7f24c8d54a85  scripts/githooks/pre-merge-commit

@@ -14,6 +14,8 @@
 # - `core.hooksPath` désarmé : `-c`, `--config-env`, `git config` (et `set`, `unset`,
 #   `--remove-section core`), ou les variables `GIT_CONFIG_*`. Remettre la clé sur un dossier
 #   `githooks` qui existe passe, la lire aussi.
+# - l'un de ces gestes porté par un alias passé en `-c alias.*`, en `!` compris, déplié jusqu'à
+#   trois fois.
 # Un préfixe (`if`, `time`, `env`, `sudo`…), un `bash -c`, un `eval` ou une substitution ne
 # cachent pas la commande. Une option abrégée (`--no-ver`) compte comme l'option entière.
 # Aucune exemption. Un bac à sable qui éprouve des hooks demande le geste à l'admin.
@@ -297,7 +299,7 @@ def juger(mots, profondeur=0):
         return
     if nom != "git":
         return
-    i, dossier = 1, ETAT["dossier"]
+    i, dossier, alias = 1, ETAT["dossier"], {}
     while i < len(mots) and mots[i].startswith("-"):
         o = mots[i]
         suivant = mots[i + 1] if i + 1 < len(mots) else ""
@@ -305,6 +307,12 @@ def juger(mots, profondeur=0):
             reglage = o.split("=", 1)[1] if "=" in o else suivant
             if reglage.split("=")[0].lower() == CLE:
                 refuser()
+            # UN ALIAS PASSÉ PAR `-c` PORTE UN GESTE ENTIER. `git -c alias.ci='commit
+            # --no-verify' ci` sautait les hooks sans qu'aucun mot du geste ne le montre. Trouvé
+            # en revue de code, le 2026-09-27. garde-depot-deploye.sh le lisait déjà.
+            m = re.match(r"^alias\.([^=]+)=(.*)$", reglage, re.S | re.I)
+            if m and o == "-c":
+                alias[m.group(1).lower()] = m.group(2)
         if o == "-C":
             connu = dossier is not None and "$" not in suivant
             dossier = os.path.join(dossier, os.path.expanduser(suivant)) if connu else None
@@ -312,6 +320,23 @@ def juger(mots, profondeur=0):
     if i >= len(mots):
         return
     geste, args = mots[i], mots[i + 1:]
+    # Trois dépliages au plus, comme ailleurs : un alias peut en nommer un autre.
+    for _ in range(3):
+        corps = alias.get(geste.lower())
+        if corps is None:
+            break
+        if corps.lstrip().startswith("!"):
+            # Un alias en `!` lance une commande du shell, qui se juge comme telle.
+            if profondeur < 3:
+                juger_texte(corps.lstrip()[1:] + " " + " ".join(args), profondeur + 1)
+            return
+        try:
+            deplie = shlex.split(corps)
+        except ValueError:
+            deplie = corps.split()
+        if not deplie:
+            return
+        geste, args = deplie[0], deplie[1:] + args
     if geste in AVEC_HOOKS and saute(args):
         refuser()
     if geste == "commit":
