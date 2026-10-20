@@ -4,11 +4,12 @@
 > droit d'attendre.
 >
 > **Ce que ce fichier fait, et ne fait pas.** Il fait foi sur le niveau de technicité des
-> réponses, sur leur longueur, et sur la façon de poser une série de questions. Il ne gouverne ni la doc écrite, ni la provenance des
+> réponses, sur leur longueur, sur la façon de poser une série de questions, et sur la forme des
+> commandes données à lancer. Il ne gouverne ni la doc écrite, ni la provenance des
 > affirmations, ni le ton du produit face à un utilisateur. Ces trois sujets ont leur propre
 > propriétaire.
 >
-> **Le rappel chargé à chaque session.** Les trois règles opératoires sont recopiées dans
+> **Le rappel chargé à chaque session.** Les quatre règles opératoires sont recopiées dans
 > `.claude/rules/ton-des-echanges.md`, dans des blocs synchronisés. Un contrôle refuse le commit
 > si les copies diffèrent d'un caractère. Le fichier d'instructions, lui, ne porte qu'un renvoi.
 
@@ -105,17 +106,66 @@ Poser une longue série une question par tour coûte un aller-retour par questio
 aussi la vue d'ensemble, et tranche chaque point sans voir les suivants. Poser la série en vrac
 dans une réponse donne l'inverse, un mur qu'on ne sait pas remplir.
 
+> Incident fondateur. Un questionnaire de textes à valider ne disait ni qui parle, ni quand, ni
+> d'où venait chaque décision. Ses options mêlaient une évidente à deux repoussoirs, sur une page
+> grise. L'admin n'y a rien compris. Refaite avec le moment, les citations liées et le thème du
+> sujet, elle lui a fait demander que cette forme devienne la règle.
+
+> Incident fondateur, sur le fond. Un questionnaire de quatorze cartes a reçu quatre « incompréhensible »
+> et cinq cartes jamais touchées. Deux portaient sur l'outillage de l'agent, une sur des
+> retouches jamais montrées, une sur un budget sans échelle. Toutes partaient du dépôt, sigles
+> et noms de fichiers compris, et non de ce que l'admin voit en se servant du produit.
+
 <!-- sync:questionnaire -->
 **Plus de trois questions, un questionnaire.** Une série de plus de trois questions à l'admin
 part d'un coup, dans une page à remplir. Jamais une par une, jamais en vrac dans une réponse.
 Trois questions ou moins se posent dans l'échange, une par une.
 
+**Ratisser large avant de publier.** Un questionnaire se prépare en cherchant aussi les autres
+questions en attente. Les trous consignés dans la roadmap, les points ouverts des notes de
+décision, et ce que le chantier suivant demandera. Elles partent dans le même questionnaire,
+par parties, plutôt que dans dix questionnaires à la suite.
+
+**Trier avant de poser.** Une question part à l'admin seulement si sa réponse change ce qu'il
+voit, ce qu'il fait ou ce qu'il paie. Un défaut à réparer, un outil, une dépendance ou une
+mécanique interne se tranchent par l'agent. La page les liste à la fin, sous « Ce que je règle
+seul », une ligne chacun, que l'admin peut contester.
+
 **Ce que porte chaque question.**
 
-- Le contexte, assez pour trancher sans relire l'échange.
-- Trois réponses possibles.
-- La réponse recommandée, et sa raison en une ou deux phrases.
+- Une scène d'abord, un moment concret de la vie de l'admin avec le produit, dans ses mots. Ni
+  sigle, ni nom de fichier, ni nom de code. Ils restent dans les sources.
+- Ce que la réponse change, dit concrètement, là où on le verra.
+- Le contexte, assez pour trancher sans relire l'échange ni connaître le dossier. Chaque mot du
+  sujet porte sa glose.
+- Trois réponses possibles, toutes défendables. Jamais une évidente entre deux repoussoirs.
+- Pour chaque option, le cas où elle gagne.
+- La réponse recommandée, et sa raison en une ou deux phrases. Elle est cochée d'avance, et vaut
+  réponse tant que l'admin n'y touche pas. Un bouton efface le choix, pour ne cocher aucune
+  option.
+- Les sources, citées mot pour mot, chacune avec un lien vers son fichier ou sa page.
 - Une case libre, « Autre, ou précision à apporter ».
+- Pour ce qui se voit, sa capture ou sa maquette. Sans image, la question ne part pas.
+- Pour chaque chiffre, son échelle, en euros, en durée ou en usages que l'admin connaît.
+
+**La lecture à froid avant de publier.** Un agent sans accès au dépôt lit chaque carte. Il redit
+en une phrase ce qui se décide et ce que change chaque réponse. Une carte qu'il ne sait pas
+redire se réécrit.
+
+**Un texte à valider se montre en entier.** Qui le dit, à quel moment, et les exemples déjà
+remplis. Jamais un gabarit à accolades que l'admin doit reconstituer. Il se tranche par
+« Validé » ou « À reprendre », sans trois réponses ni recommandation.
+
+**La page porte le thème du sujet traité.** Couleurs, polices et ambiance viennent du sujet,
+comme l'univers d'un jeu ou le métier d'un outil. En tête, un fil qui situe les questions, et
+un petit lexique quand le sujet a ses mots. Une page grise et générique ne se publie pas.
+
+**Elle est belle, variée et animée.** Le décor sort du sujet. Des algues, des bateaux et des
+tortues pour un monde sous-marin, un aspect de code pour un sujet technique. Pour une
+application, ses propres couleurs.
+
+**Les cartes changent de forme selon ce qu'elles portent**, une voix, un choix, un souvenir. Le
+décor bouge, jamais le texte à lire. Tout s'arrête quand le lecteur demande moins de mouvement.
 
 **Ce que la page permet.** Répondre dedans, avec un enregistrement que l'agent relit lui-même.
 Ou télécharger les réponses dans un fichier, pour les renvoyer plus tard. Le modèle de page vit
@@ -127,6 +177,40 @@ fichier HTML autonome envoyé à l'admin, qui garde le téléchargement.
 **La page est temporaire.** Elle ne fait jamais foi. Chaque réponse se consigne ensuite là où le
 dépôt range ses décisions.
 <!-- /sync:questionnaire -->
+
+## Les commandes données à lancer
+
+Une commande sans chemin s'exécute dans le dossier du terminal qui la reçoit. L'agent ne voit
+pas forcément ce terminal, et l'admin en garde plusieurs ouverts, sur plusieurs projets. La même commande
+peut donc viser un autre dépôt que celui dont parle l'échange.
+
+> Incident fondateur. Une suppression de branche distante a été donnée sans chemin. L'admin l'a
+> lancée depuis un terminal ouvert sur un autre projet. Elle a visé le mauvais dépôt distant, et
+> n'a échoué que parce qu'aucune branche n'y portait ce nom.
+
+<!-- sync:commandes -->
+**Une commande à lancer désigne son dossier.** L'admin mène plusieurs projets à la fois, chacun
+dans son terminal. Une commande qu'on lui donne ne dépend donc jamais du dossier où ce terminal
+se trouve. Le chemin est absolu, ou part de `~` placé hors guillemets.
+
+- **`git` désigne son dépôt par `-C`.**
+- **Toute autre commande liée à un dossier commence par `cd` vers lui.** Un script, `gh`, ou
+  tout ce qui lit un chemin relatif.
+- **Une commande qui ne dépend d'aucun dossier reste telle quelle.** Une installation de paquet,
+  un `systemctl`.
+- **Une commande lancée par `ssh` suit la règle de l'autre côté**, entre les guillemets. Le `~`
+  y désigne alors le dossier personnel de la machine distante.
+- **Dans un bloc de plusieurs commandes, chacune porte son dossier.**
+
+```bash
+git -C ~/<chemin du dépôt> push origin --delete <branche>
+cd ~/<chemin du dépôt> && bash scripts/doc-lint.sh
+ssh <hôte> 'git -C ~/<chemin du dépôt> status'
+```
+
+**Portée.** Toute commande que l'admin lance lui-même, donnée dans une réponse, un plan ou un
+résumé de fin de tour. Les commandes que l'agent lance de son côté n'en relèvent pas.
+<!-- /sync:commandes -->
 
 ## Pourquoi garder le mot exact plutôt qu'une image
 
@@ -153,8 +237,12 @@ aussi ce qui se passe vraiment.
 
 ## Les limites, dites franchement
 
-**Rien ne mesure l'application de ces règles.** Un contrôle verrouille le texte des blocs
-partagés, au caractère près. Il ne peut pas juger si une réponse donnée les respecte.
+**Presque rien ne mesure l'application de ces règles.** Un contrôle verrouille le texte des
+blocs partagés, au caractère près. Il ne peut pas juger si une réponse donnée les respecte.
+
+Deux gardes en mesurent une part, dans un questionnaire envoyé à l'admin. Chaque question à
+choisir part d'une scène sans jargon visible, et chaque option dit quand elle gagne. Le
+registre des garde-fous les nomme.
 
 **La frontière du terme neuf est floue.** Un terme expliqué il y a trente tours de conversation
 est-il encore connu ? La règle ne tranche pas, et l'agent choisit.

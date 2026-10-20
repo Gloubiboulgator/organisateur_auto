@@ -3,105 +3,229 @@
   Modèle de questionnaire, pour une série de plus de trois questions à l'admin.
   La règle vit dans docs/ton-des-echanges.md, section « Plus de trois questions à poser ».
 
-  Pour s'en servir, copier ce fichier, puis changer trois choses.
-  1. Le titre de la page et le chapeau.
-  2. La constante SERIE, qui nomme la série et le fichier téléchargé.
-  3. Le tableau QUESTIONS, une entrée par question.
+  Pour s'en servir, copier ce fichier, puis changer cinq choses.
+  1. LE THÈME. Les jetons de couleur et les trois polices du bloc :root viennent du sujet
+     traité, comme l'univers d'un jeu ou le métier d'un outil. Une page grise ne part pas.
+     Ajouter le décor animé du sujet, en calque fixe derrière la page : des algues et des
+     tortues sous la mer, des lignes de code pour un sujet technique, les couleurs d'une
+     appli pour cette appli. Donner à chaque sorte de carte sa forme. Couper toute
+     animation sous prefers-reduced-motion.
+  2. Le titre, le surtitre et le chapeau.
+  3. Le fil et le lexique d'en-tête. Le fil montre où se situent les questions, le lexique
+     glose les mots du sujet. Retirer l'un ou l'autre si le sujet n'en a pas.
+  4. La constante SERIE, qui nomme la série et le fichier téléchargé.
+  5. Les tableaux PARTIES, QUESTIONS et REGLE_SEUL.
+
+  Avant d'écrire une question, la trier. Elle part à l'admin seulement si sa réponse change ce
+  qu'il voit, fait ou paie. Le reste, l'agent le tranche et l'écrit dans REGLE_SEUL, une ligne
+  par point. La page en fait une dernière carte, à valider ou à contester.
+
+  Une question porte ces champs.
+  - id, titre, partie : l'identifiant, la question, et l'id de sa partie dans PARTIES.
+  - scene : obligatoire pour un choix. Un moment concret de la vie de l'admin avec le produit,
+    dans ses mots. Ni sigle, ni nom de fichier, ni nom de code, qui restent dans les sources.
+    Le garde scripts/garde-questions-illisibles.sh le vérifie, avec le titre et le « quand ».
+  - image : {src, alt, legende}, obligatoire pour une question sur ce qui se voit. La capture
+    ou la maquette, en data: URI ou en fichier publié à côté de la page.
+  - quand : ce que la réponse change, et où on le verra. Dit concrètement.
+  - contexte : des paragraphes, assez pour trancher sans relire l'échange.
+  - qui : facultatif, {nom, role, lettre}, pour un texte dit par quelqu'un.
+  - lignes, etiquettes, note : facultatifs, un texte à valider, montré en entier.
+  - options : trois réponses défendables, {code, titre, detail, gagneSi}. gagneSi dit dans quel
+    cas l'option gagne, affiché « Gagne si … » sous elle. Une option qui ne peut pas le dire est
+    un leurre. Sans reco, la question devient une validation, et options vaut VALIDER.
+  - reco, pourquoi : la recommandée, et sa raison, qui dit aussi ce que valent les autres.
+  - sources : {ref, cit, nom, url}. La citation est mot pour mot, le lien ouvre le fichier.
+  Chaque chiffre porte son échelle, en euros, en durée ou en parties jouées.
+
+  Avant de publier, la lecture à froid. Un agent sans accès au dépôt lit chaque carte, et redit
+  en une phrase ce qui se décide et ce que change chaque réponse. Une carte qu'il ne sait pas
+  redire se réécrit.
+
+  La recommandée est cochée d'avance, et n'est pas écrite dans la base tant que l'admin n'y
+  touche pas : une question sans réponse enregistrée vaut la recommandée. Le premier geste de
+  l'admin, même une précision écrite seule, la fige en vrai choix. « Effacer mon choix » laisse
+  une question sans option, ce qui est une réponse.
 
   Publié comme page de conversation, déclarer les capacités db et downloads.
   Les réponses s'écrivent alors dans la collection « reponses », un document par question.
   Hors publication, le fichier s'ouvre seul. Il garde « Télécharger », par un lien local,
   « Copier », et le brouillon du navigateur.
 -->
+<html lang="fr">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Questionnaire</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <style>
+/* LE THÈME, à redéfinir d'après le sujet. Ces valeurs ne sont qu'un point de départ neutre. */
 :root{
-  --fond:#f3f4f8; --papier:#ffffff; --encre:#1b2138; --doux:#5b6384; --trait:#d9dcea;
-  --accent:#2f4bb8; --accent-fond:#e7ebfb; --reco:#1f7a52; --reco-fond:#e3f3eb; --alerte:#9a5b00;
+  --fond:#f4f3ef; --papier:#ffffff; --encre:#1d2130; --doux:#5d6478; --trait:#dcdde4;
+  --accent:#9c4a1c; --accent-fond:#f6e9df; --reco:#1f7a52; --reco-fond:#e3f3eb;
+  --f-titre:"Fraunces",Georgia,serif; --f-texte:"Source Serif 4",Georgia,serif;
+  --f-ui:"Atkinson Hyperlegible",system-ui,sans-serif;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --fond:#10131f; --papier:#181c2c; --encre:#e6e8f2; --doux:#9aa1bf; --trait:#2b3148;
-    --accent:#8fa4ff; --accent-fond:#222a4a; --reco:#6fd3a4; --reco-fond:#16302a; --alerte:#f0b35a;
+    --fond:#12141b; --papier:#1b1e28; --encre:#e8e9ef; --doux:#a2a8bb; --trait:#2d3140;
+    --accent:#f0a06e; --accent-fond:#3a2519; --reco:#6fd3a4; --reco-fond:#16302a;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --fond:#10131f; --papier:#181c2c; --encre:#e6e8f2; --doux:#9aa1bf; --trait:#2b3148;
-  --accent:#8fa4ff; --accent-fond:#222a4a; --reco:#6fd3a4; --reco-fond:#16302a; --alerte:#f0b35a;
+  --fond:#12141b; --papier:#1b1e28; --encre:#e8e9ef; --doux:#a2a8bb; --trait:#2d3140;
+  --accent:#f0a06e; --accent-fond:#3a2519; --reco:#6fd3a4; --reco-fond:#16302a;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
-body{background:var(--fond);color:var(--encre);font:16px/1.55 "Atkinson Hyperlegible",system-ui,sans-serif;padding-inline:16px;padding-block:24px 96px}
-.page{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
-h1,h2{font-family:"Bricolage Grotesque","Atkinson Hyperlegible",system-ui,sans-serif;text-wrap:balance;margin:0}
-h1{font-size:1.9rem;line-height:1.15}
-h2{font-size:1.25rem;line-height:1.25}
-.chapo{color:var(--doux);margin:0;max-width:65ch}
-.barre{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--papier);border:1px solid var(--trait);border-radius:10px;padding:12px 14px;position:sticky;top:env(safe-area-inset-top,0px);z-index:2}
-.compte{font-variant-numeric:tabular-nums;font-weight:700}
-.etat{color:var(--doux);font-size:.9rem}
+body{background:var(--fond);color:var(--encre);font:17px/1.6 var(--f-ui);padding-inline:16px;padding-block:0 96px}
+a{color:var(--accent)}
+.page{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+h1,h2,h3{font-family:var(--f-titre);font-weight:500;text-wrap:balance;margin:0}
+.hero{padding-block:48px 4px;display:flex;flex-direction:column;gap:12px}
+.surtitre{font:700 .78rem/1 var(--f-ui);letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:clamp(2.1rem,6vw,3.4rem);line-height:1.08}
+.chapo{font:1.1rem/1.6 var(--f-texte);color:var(--doux);margin:0;max-width:62ch}
+.fil{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px}
+.fil a{display:flex;flex-direction:column;gap:2px;text-decoration:none;color:var(--encre);padding:8px;border-top:2px solid var(--trait)}
+.fil a:hover{border-top-color:var(--accent)}
+.fil .n{font:1.3rem var(--f-titre);color:var(--accent)} .fil .lib{font-size:.85rem;line-height:1.3}
+.lexique{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 20px;margin:0;padding:16px 0;border-block:1px solid var(--trait)}
+.lexique div{min-width:0} .lexique dt{font-weight:700;color:var(--accent);font-size:.92rem} .lexique dd{margin:0;color:var(--doux);font-size:.92rem;line-height:1.45}
+.barre{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--fond);border-bottom:1px solid var(--trait);padding:10px 0;position:sticky;top:env(safe-area-inset-top,0px);z-index:2}
+.compte{font:1.1rem var(--f-titre);font-variant-numeric:tabular-nums}
+.etat{color:var(--doux);font-size:.88rem}
 .boutons{display:flex;gap:8px;flex-wrap:wrap}
-button{font:inherit;font-weight:700;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--papier);padding:8px 14px;cursor:pointer}
-button.second{background:transparent;color:var(--accent)}
-button:focus-visible,textarea:focus-visible,input:focus-visible+span{outline:3px solid var(--accent);outline-offset:2px}
-.q{background:var(--papier);border:1px solid var(--trait);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:14px}
-.q header{display:flex;gap:12px;align-items:baseline}
-.num{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:700;color:var(--accent);background:var(--accent-fond);border-radius:6px;padding:2px 8px;font-size:.95rem;flex:none}
-.contexte{margin:0;max-width:65ch}
-.contexte p{margin:0 0 8px}
-.contexte p:last-child{margin:0}
-.options{display:flex;flex-direction:column;gap:8px;border:0;margin:0;padding:0}
-.opt{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;border:1px solid var(--trait);border-radius:10px;padding:10px 12px;cursor:pointer}
+button{font:700 .9rem var(--f-ui);border-radius:999px;border:1px solid var(--accent);background:transparent;color:var(--accent);padding:7px 14px;cursor:pointer}
+button:focus-visible,textarea:focus-visible,a:focus-visible,.opt:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:3px}
+.partie{display:flex;flex-direction:column;gap:16px;scroll-margin-top:70px}
+.partie>header{display:flex;flex-direction:column;gap:6px;padding-top:22px}
+.partie h2{font-size:clamp(1.5rem,4vw,2rem)}
+.partie>header p{margin:0;color:var(--doux);max-width:64ch;font-family:var(--f-texte)}
+.q{background:var(--papier);border:1px solid var(--trait);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px;scroll-margin-top:70px}
+.tete{display:flex;gap:14px;align-items:center}
+.medaillon{flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font:1.4rem var(--f-titre);color:var(--papier);background:var(--accent)}
+.tete .t{min-width:0;display:flex;flex-direction:column;gap:2px}
+.tete h3{font-size:1.28rem;line-height:1.25}
+.tete .role{font-size:.85rem;color:var(--doux)}
+.num{font:700 .72rem var(--f-ui);letter-spacing:.08em;color:var(--doux);border:1px solid var(--trait);border-radius:6px;padding:1px 6px;margin-right:8px;font-variant-numeric:tabular-nums;vertical-align:3px}
+.scene{font:1.08rem/1.6 var(--f-texte);margin:0;max-width:66ch;padding:10px 14px;border-left:3px solid var(--accent)}
+.illus{margin:0;display:flex;flex-direction:column;gap:6px}
+.illus img{max-width:100%;height:auto;border:1px solid var(--trait);border-radius:8px}
+.illus figcaption{font-size:.88rem;color:var(--doux)}
+.quand{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:baseline;background:var(--accent-fond);border-radius:10px;padding:10px 12px}
+.quand b{font:700 .72rem var(--f-ui);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.quand span{min-width:0}
+.contexte p{margin:0 0 6px;max-width:66ch} .contexte p:last-child{margin:0}
+.lignes{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.lignes li{font:1.1rem/1.55 var(--f-texte);background:var(--fond);border-radius:4px 14px 14px 14px;padding:10px 14px;max-width:62ch;min-width:0}
+.lignes .lab{display:block;font:700 .72rem/1.3 var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:3px}
+.note{font-size:.92rem;color:var(--doux);margin:0;max-width:66ch}
+.options{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;border:0;margin:0;padding:0}
+.options.valider{display:flex;flex-wrap:wrap}
+.options legend{font:700 .72rem var(--f-ui);letter-spacing:.14em;text-transform:uppercase;color:var(--doux);margin-bottom:8px;padding:0}
+.opt{position:relative;display:flex;flex-direction:column;gap:6px;border:1px solid var(--trait);border-radius:12px;padding:12px 14px;cursor:pointer;min-width:0}
+.options.valider .opt{padding:8px 16px;border-radius:999px}
 .opt:has(input:checked){border-color:var(--accent);background:var(--accent-fond)}
-.opt input{margin-top:5px;accent-color:var(--accent)}
-.opt b{display:block}
-.pastille{display:inline-block;font-size:.75rem;letter-spacing:.04em;text-transform:uppercase;font-weight:700;color:var(--reco);background:var(--reco-fond);border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:1px}
-.pourquoi{border-left:3px solid var(--reco);background:var(--reco-fond);padding:10px 12px;border-radius:0 8px 8px 0;font-size:.95rem}
+.opt input{position:absolute;opacity:0;pointer-events:none}
+.opt b{font:1.05rem var(--f-titre)}
+.opt .d{font-size:.95rem;color:var(--doux)}
+.opt .g{font-size:.88rem;border-top:1px dotted var(--trait);padding-top:6px}
+.opt .g::before{content:"Gagne si · ";font-weight:700;color:var(--accent)}
+.pastille{align-self:flex-start;font:700 .68rem var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--papier);background:var(--reco);border-radius:999px;padding:2px 8px}
+.outils{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.avance{font:700 .72rem var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--reco)}
+button.effacer{font:600 .82rem var(--f-ui);border-radius:999px;border:1px dashed var(--doux);color:var(--doux);background:transparent;padding:4px 12px}
+.pourquoi{font-size:.95rem;border-left:2px solid var(--reco);padding:4px 0 4px 12px;max-width:66ch}
 .pourquoi strong{color:var(--reco)}
-label.libre{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:.95rem}
-textarea{font:inherit;font-weight:400;color:var(--encre);background:var(--fond);border:1px solid var(--trait);border-radius:8px;padding:8px 10px;min-height:70px;resize:vertical;width:100%}
-.note{color:var(--doux);font-size:.85rem;margin:0}
-.fait{color:var(--reco);font-weight:700;font-size:.85rem}
-@media (prefers-reduced-motion:no-preference){.opt{transition:background .15s,border-color .15s}}
+label.libre{display:flex;flex-direction:column;gap:6px;font-size:.88rem;color:var(--doux)}
+textarea{font:1rem var(--f-ui);color:var(--encre);background:var(--fond);border:1px solid var(--trait);border-radius:10px;padding:10px 12px;min-height:64px;resize:vertical;width:100%}
+details.sources{border-top:1px dashed var(--trait);padding-top:10px}
+details.sources summary{cursor:pointer;font:700 .8rem var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--doux)}
+.src{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+.src li{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:baseline;min-width:0}
+.src .ref{font:700 .75rem var(--f-ui);color:var(--papier);background:var(--doux);border-radius:5px;padding:1px 6px;white-space:nowrap}
+.src q{font:italic .98rem/1.5 var(--f-texte);min-width:0}
+.src a{grid-column:2;font-size:.82rem;overflow-wrap:anywhere}
+.fait{color:var(--reco);font-weight:700;font-size:.85rem;min-height:1em}
+.pied{color:var(--doux);font-size:.88rem;border-top:1px solid var(--trait);padding-top:14px;margin:0}
+.decor{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.page{position:relative;z-index:1}
+.flotte{position:absolute;border-radius:50%;background:var(--accent-fond);opacity:.7}
+.flotte.a{width:220px;height:220px;left:-60px;top:30vh;animation:flotte 18s ease-in-out infinite alternate}
+.flotte.b{width:140px;height:140px;right:-40px;top:70vh;animation:flotte 24s ease-in-out infinite alternate-reverse}
+@keyframes flotte{to{transform:translate(40px,-60px) scale(1.1)}}
+@media (prefers-reduced-motion:no-preference){.opt,.fil a{transition:background .15s,border-color .15s}}
+@media (prefers-reduced-motion:reduce){.flotte{animation:none}}
 </style>
 
+<!-- Le décor du sujet, en calque fixe derrière la page. Ces deux formes ne sont qu'un exemple
+     neutre : les remplacer par le monde du sujet. Le texte, lui, ne bouge jamais. -->
+<div class="decor" aria-hidden="true"><span class="flotte a"></span><span class="flotte b"></span></div>
+
 <div class="page">
-  <header>
+  <header class="hero">
+    <span class="surtitre">Le sujet · la nature de la série</span>
     <h1>Titre de la série</h1>
-    <p class="chapo">Une phrase qui dit d'où viennent ces questions. Coche une réponse ou écris la tienne. La barre du haut dit si l'agent relit tes réponses d'ici, ou s'il faut les lui renvoyer.</p>
+    <p class="chapo">D'où viennent ces questions, et ce que les réponses vont trancher. Pour chacune, ce qu'elle change, le contexte, trois réponses défendables et les sources citées mot pour mot.</p>
+    <ol class="fil" id="fil" aria-label="Où se situent les questions"></ol>
   </header>
+
+  <dl class="lexique" aria-label="Les mots du sujet">
+    <div><dt>Un mot du sujet</dt><dd>Sa glose, en une phrase, pour lire les questions sans rien savoir d'avance.</dd></div>
+  </dl>
 
   <div class="barre" role="region" aria-label="Avancement">
     <div><span class="compte" id="compte">0</span> <span class="etat" id="etat">répondues</span><div class="etat" id="mode" aria-live="polite">Recherche de l'enregistrement partagé…</div></div>
     <div class="boutons">
-      <button type="button" id="telecharger" class="second">Télécharger mes réponses</button>
-      <button type="button" id="copier" class="second">Copier</button>
+      <button type="button" id="telecharger">Télécharger mes réponses</button>
+      <button type="button" id="copier">Copier</button>
     </div>
   </div>
 
-  <main id="liste" class="page" style="gap:16px"></main>
-  <p class="note">Enregistrement automatique à chaque réponse. Si l'enregistrement partagé n'est pas disponible, les réponses restent dans ce navigateur, et le bouton « Télécharger » ou « Copier » te permet de les renvoyer.</p>
+  <main id="liste" class="page" style="gap:32px"></main>
+  <p class="pied">Enregistrement automatique à chaque réponse. Si l'enregistrement partagé n'est pas disponible, les réponses restent dans ce navigateur, et le bouton « Télécharger » ou « Copier » te permet de les renvoyer. Cette page ne fait pas foi.</p>
 </div>
 
 <script>
 const SERIE = "exemple";
+const VALIDER = [
+  {code:"V", titre:"Validé", detail:"Le texte part tel quel."},
+  {code:"R", titre:"À reprendre", detail:"Dis quoi changer, ou réécris-le."}];
+const PARTIES = [
+  {id:"p1", titre:"Première étape du sujet", texte:"Ce que cette partie tranche, en une phrase."},
+  {id:"p2", titre:"Deuxième étape", texte:"Ce que cette partie tranche."}];
 const QUESTIONS = [
-  {id:"Q1", titre:"Exemple de question, à remplacer",
+  {id:"Q1", partie:"p1", titre:"Exemple de question, à remplacer",
+   scene:"Le moment où l'admin rencontre la chose, dans ses mots. Tu ouvres le jeu, tu vois ceci, et il se passe cela.",
+   quand:"Ce que la réponse change, et où on le verra.",
    contexte:["Le contexte, assez pour trancher sans relire l'échange.",
              "Un second paragraphe si besoin."],
    options:[
-     {code:"A", titre:"Première réponse", detail:"Ce qu'elle implique."},
-     {code:"B", titre:"Deuxième réponse", detail:"Ce qu'elle implique."},
-     {code:"C", titre:"Troisième réponse", detail:"Ce qu'elle implique."}],
+     {code:"A", titre:"Première réponse", detail:"Ce qu'elle implique, et ce qu'elle coûte.", gagneSi:"le cas concret où cette réponse est la bonne."},
+     {code:"B", titre:"Deuxième réponse", detail:"Ce qu'elle implique, et ce qu'elle coûte.", gagneSi:"le cas concret où cette réponse est la bonne."},
+     {code:"C", titre:"Troisième réponse", detail:"Ce qu'elle implique, et ce qu'elle coûte.", gagneSi:"le cas concret où cette réponse est la bonne."}],
    reco:"B",
-   pourquoi:"La raison de la recommandation, en une ou deux phrases."}
+   pourquoi:"La raison de la recommandation, et ce que valent les deux autres.",
+   sources:[{ref:"Q3", cit:"La phrase exacte de la note qui fonde la question.",
+             nom:"Note de décision", url:"https://exemple.invalid/chemin/du/fichier.md"}]},
+  {id:"T1", partie:"p2", titre:"Exemple de texte à valider",
+   qui:{nom:"Qui le dit", role:"Son rôle, en quelques mots", lettre:"Q"},
+   quand:"Le moment précis où ce texte s'affiche.",
+   lignes:["Le texte entier, exemples déjà remplis, jamais un gabarit à accolades."],
+   note:"Ce qui changera au moment de l'afficher, si quelque chose change.",
+   options:VALIDER, reco:"", pourquoi:"", sources:[]}
 ];
+// Ce que l'agent tranche seul : une ligne par point, dans les mots de l'admin. Vide, la carte
+// n'apparaît pas.
+const REGLE_SEUL = [];
+if (REGLE_SEUL.length) {
+  PARTIES.push({id:"seul", titre:"Ce que je règle seul", texte:"Ces points ne changent ni ce que tu vois, ni ce que tu fais, ni ce que tu paies. Je les tranche, et tu peux en contester un."});
+  QUESTIONS.push({id:"SEUL", partie:"seul", titre:"Ce que je règle seul", quand:"Dès ta validation, sans autre question.",
+    lignes:REGLE_SEUL, note:"« À reprendre » rouvre le point que tu nommes dans la case libre.", options:VALIDER, reco:"", pourquoi:"", sources:[]});
+}
 
 const cle = "questionnaire-" + SERIE;
 let reponses = {};
@@ -119,53 +243,148 @@ function el(tag, attrs, ...enfants){
   return n;
 }
 
+// La recommandée est cochée d'avance. Tant que l'admin n'a touché à rien, sa réponse est
+// celle-là : « maj » vide veut dire « pas encore touché ». Un choix effacé garde son heure, et
+// vaut « aucune option ».
+function estChoix(q){ return q.options !== VALIDER; }
+function touche(q){
+  const r = reponses[q.id];
+  // Une réponse d'une version plus ancienne n'a pas d'heure : remplie, elle compte comme touchée.
+  return !!(r && (r.maj || ((r.choix || (r.autre||"").trim()) && !r.defaut)));
+}
+function effectif(q){
+  const r = reponses[q.id] || {};
+  if (touche(q)) return r.choix || "";
+  return estChoix(q) && q.reco ? q.reco : "";
+}
+
+function carte(q){
+  const r = reponses[q.id] || {};
+  const c = el("section", {class:"q", id:"q-"+q.id, "aria-labelledby":"t-"+q.id});
+  const tete = el("div", {class:"tete"});
+  if (q.qui && q.qui.lettre) tete.append(el("span", {class:"medaillon", "aria-hidden":"true", text:q.qui.lettre}));
+  const t = el("div", {class:"t"});
+  const h = el("h3", {id:"t-"+q.id}); h.append(el("span", {class:"num", text:q.id}), document.createTextNode(q.titre));
+  t.append(h);
+  if (q.qui) t.append(el("span", {class:"role", text:[q.qui.nom, q.qui.role].filter(Boolean).join(" · ")}));
+  tete.append(t); c.append(tete);
+  if (q.scene) c.append(el("p", {class:"scene", text:q.scene}));
+  if (q.quand) c.append(el("div", {class:"quand"}, el("b", {text:"Quand"}), el("span", {text:q.quand})));
+  if (q.contexte) { const x = el("div", {class:"contexte"}); q.contexte.forEach(p => x.append(el("p", {text:p}))); c.append(x); }
+  if (q.image) c.append(el("figure", {class:"illus"}, el("img", {src:q.image.src, alt:q.image.alt || "", loading:"lazy"}), q.image.legende ? el("figcaption", {text:q.image.legende}) : null));
+  if (q.lignes) {
+    const ul = el("ul", {class:"lignes"});
+    q.lignes.forEach((l, i) => {
+      const li = el("li");
+      if (q.etiquettes && q.etiquettes[i]) li.append(el("span", {class:"lab", text:q.etiquettes[i]}));
+      li.append(document.createTextNode(l));
+      ul.append(li);
+    });
+    c.append(ul);
+  }
+  if (q.note) c.append(el("p", {class:"note", text:q.note}));
+  // Un texte à valider porte options:VALIDER, deux boutons sans recommandation. Tout le reste
+  // est un choix : ses options, sa recommandation et sa raison s'affichent.
+  const choix = q.options !== VALIDER;
+  const fs = el("fieldset", {class:choix ? "options" : "options valider"});
+  fs.append(el("legend", {text:choix ? q.options.length + (q.options.length > 1 ? " réponses possibles" : " réponse possible") : "Ton avis"}));
+  q.options.forEach(o => {
+    const input = el("input", {type:"radio", name:"choix-"+q.id, id:"choix-"+q.id+"-"+o.code, value:o.code});
+    if (effectif(q) === o.code) input.checked = true;
+    input.addEventListener("change", () => noter(q.id, {choix:o.code}));
+    // Cliquer la recommandée déjà cochée la confirme : aucun « change » ne part dans ce cas.
+    input.addEventListener("click", () => { if (!touche(q) && effectif(q) === o.code) noter(q.id, {choix:o.code}); });
+    const lab = el("label", {class:"opt", for:"choix-"+q.id+"-"+o.code}, input);
+    if (choix && o.code === q.reco) lab.append(el("span", {class:"pastille", text:"Recommandé"}));
+    lab.append(el("b", {text:choix ? o.code + ". " + o.titre : o.titre}));
+    if (choix) lab.append(el("span", {class:"d", text:o.detail}));
+    if (choix && o.gagneSi) lab.append(el("span", {class:"g", text:o.gagneSi}));
+    fs.append(lab);
+  });
+  c.append(fs);
+  // Sous les options : la marque « cochée d'avance », et le bouton qui efface le choix.
+  const outils = el("div", {class:"outils"});
+  outils.append(el("span", {class:"avance", id:"avance-"+q.id, text:"Recommandée, cochée d'avance"}));
+  const eff = el("button", {type:"button", class:"effacer", id:"effacer-"+q.id, text:"Effacer mon choix"});
+  eff.addEventListener("click", () => { noter(q.id, {choix:""}); appliquer(q.id); });
+  outils.append(eff);
+  c.append(outils);
+  if (choix && q.reco) { const p = el("div", {class:"pourquoi"}); p.append(el("strong", {text:"Pourquoi " + q.reco + " · "}), document.createTextNode(q.pourquoi || "")); c.append(p); }
+  const ta = el("textarea", {id:"autre-"+q.id, placeholder:"Autre réponse, ou précision à apporter"});
+  ta.value = r.autre || "";
+  ta.addEventListener("input", () => noter(q.id, {autre:ta.value}, true));
+  c.append(el("label", {class:"libre", for:"autre-"+q.id}, document.createTextNode("Autre, ou précision à apporter"), ta));
+  if (q.sources && q.sources.length) {
+    const d = el("details", {class:"sources"});
+    d.append(el("summary", {text:"D'où ça vient · " + q.sources.length + (q.sources.length > 1 ? " sources" : " source")}));
+    const ul = el("ul", {class:"src"});
+    q.sources.forEach(s => {
+      const li = el("li");
+      li.append(el("span", {class:"ref", text:s.ref}), el("q", {text:s.cit}));
+      if (s.url) li.append(el("a", {href:s.url, target:"_blank", rel:"noopener", text:(s.nom || s.url) + " ↗"}));
+      ul.append(li);
+    });
+    d.append(ul); c.append(d);
+  }
+  c.append(el("span", {class:"fait", id:"fait-"+q.id, "aria-live":"polite"}));
+  return c;
+}
+
+// L'ordre de lecture : partie par partie, dans l'ordre de PARTIES, les questions sans partie à la fin.
+// L'export le suit, pour que le fichier renvoyé se lise comme la page.
+function ordreAffiche(){
+  const connues = PARTIES.map(p => p.id);
+  return PARTIES.flatMap(p => QUESTIONS.filter(q => q.partie === p.id))
+    .concat(QUESTIONS.filter(q => !connues.includes(q.partie)));
+}
+
 function rendre(){
   const liste = document.getElementById("liste");
   liste.textContent = "";
-  QUESTIONS.forEach(q => {
-    const r = reponses[q.id] || {};
-    const carte = el("section", {class:"q", id:"q-"+q.id, "aria-labelledby":"t-"+q.id});
-    carte.append(el("header", null, el("span", {class:"num", text:q.id}), el("h2", {id:"t-"+q.id, text:q.titre})));
-    const ctx = el("div", {class:"contexte"});
-    q.contexte.forEach(p => ctx.append(el("p", {text:p})));
-    carte.append(ctx);
-    const fs = el("fieldset", {class:"options"});
-    fs.append(el("legend", {class:"note", text:q.options.length + " réponses possibles"}));
-    q.options.forEach(o => {
-      const input = el("input", {type:"radio", name:"choix-"+q.id, id:"choix-"+q.id+"-"+o.code, value:o.code});
-      if (r.choix === o.code) input.checked = true;
-      input.addEventListener("change", () => noter(q.id, {choix:o.code}));
-      const titre = el("b", {text:o.code+". "+o.titre});
-      if (o.code === q.reco) titre.append(el("span", {class:"pastille", text:"Recommandé"}));
-      fs.append(el("label", {class:"opt", for:"choix-"+q.id+"-"+o.code}, input, el("span", null, titre, el("span", {text:o.detail}))));
-    });
-    carte.append(fs);
-    const pq = el("div", {class:"pourquoi"});
-    pq.append(el("strong", {text:"Pourquoi "+q.reco+" : "}), document.createTextNode(q.pourquoi));
-    carte.append(pq);
-    const ta = el("textarea", {id:"autre-"+q.id, placeholder:"Autre réponse, ou précision à apporter"});
-    ta.value = r.autre || "";
-    ta.addEventListener("input", () => noter(q.id, {autre:ta.value}, true));
-    carte.append(el("label", {class:"libre", for:"autre-"+q.id}, document.createTextNode("Autre, ou précision à apporter"), ta));
-    carte.append(el("span", {class:"fait", id:"fait-"+q.id, "aria-live":"polite"}));
-    liste.append(carte);
+  // Une section par partie, dans l'ordre de PARTIES. Une question sans partie connue ferme la page.
+  const connues = PARTIES.map(p => p.id);
+  const groupes = PARTIES.map(p => ({p, qs:QUESTIONS.filter(q => q.partie === p.id)}));
+  const orphelines = QUESTIONS.filter(q => !connues.includes(q.partie));
+  if (orphelines.length) groupes.push({p:{id:"autres", titre:"Autres questions", texte:""}, qs:orphelines});
+  // Le fil d'en-tête se construit depuis les mêmes groupes : aucun lien vers une partie vide.
+  const fil = document.getElementById("fil");
+  if (fil) fil.textContent = "";
+  let rang = 0;
+  groupes.forEach(({p, qs}) => {
+    if (!qs.length) return;
+    rang += 1;
+    if (fil) fil.append(el("li", null, el("a", {href:"#"+p.id}, el("span", {class:"n", text:String(rang)}), el("span", {class:"lib", text:p.titre}))));
+    const s = el("section", {class:"partie", id:p.id});
+    const h = el("header", null, el("h2", {text:p.titre}));
+    if (p.texte) h.append(el("p", {text:p.texte}));
+    s.append(h);
+    qs.forEach(q => s.append(carte(q)));
+    liste.append(s);
   });
+  QUESTIONS.forEach(q => appliquer(q.id));
   compter();
 }
 
 function compter(){
-  const n = QUESTIONS.filter(q => { const r = reponses[q.id]; return r && (r.choix || (r.autre||"").trim()); }).length;
-  document.getElementById("compte").textContent = n + " sur " + QUESTIONS.length;
+  const n = QUESTIONS.filter(q => { const r = reponses[q.id] || {}; return effectif(q) || (r.autre||"").trim(); }).length;
+  const d = QUESTIONS.filter(q => !touche(q) && effectif(q)).length;
+  document.getElementById("compte").textContent = n + " sur " + QUESTIONS.length + (d ? ", dont " + d + (d > 1 ? " cochées" : " cochée") + " d'avance" : "");
 }
 
 function noter(id, patch, differe){
+  // Au premier geste, la recommandée cochée d'avance devient un vrai choix : une précision
+  // écrite seule la garde. « Effacer » passe choix:"" et reste donc un effacement.
+  const q = QUESTIONS.find(x => x.id === id);
+  if (q && !touche(q) && !("choix" in patch)) patch = Object.assign({choix:effectif(q)}, patch);
   // L'heure de chaque réponse départage, au chargement, ce navigateur et la base.
   reponses[id] = Object.assign({}, reponses[id], patch, {maj:new Date().toISOString()});
+  delete reponses[id].defaut;
   try { localStorage.setItem(cle, JSON.stringify(reponses)); } catch (e) {}
   document.getElementById("etat").textContent = "répondues";
   compter();
   clearTimeout(minuteurs[id]);
   minuteurs[id] = setTimeout(() => envoyer(id), differe ? 700 : 0);
+  appliquer(id);
 }
 
 async function envoyer(id){
@@ -199,18 +418,25 @@ async function envoyer(id){
 // cours garde son curseur, et les marques « Enregistré » restent.
 function appliquer(id){
   const r = reponses[id] || {};
-  document.querySelectorAll('input[name="choix-'+id+'"]').forEach(radio => { radio.checked = radio.value === r.choix; });
+  const q = QUESTIONS.find(x => x.id === id);
+  const c = q ? effectif(q) : (r.choix || "");
+  document.querySelectorAll('input[name="choix-'+id+'"]').forEach(radio => { radio.checked = radio.value === c; });
+  const av = document.getElementById("avance-"+id);
+  if (av) av.hidden = !(q && !touche(q) && c);
+  const ef = document.getElementById("effacer-"+id);
+  if (ef) ef.hidden = !c;
   const ta = document.getElementById("autre-"+id);
   if (ta && document.activeElement !== ta) ta.value = r.autre || "";
 }
 
 function texteExport(){
   const lignes = ["# Réponses, série " + SERIE, ""];
-  QUESTIONS.forEach(q => {
+  ordreAffiche().forEach(q => {
     const r = reponses[q.id] || {};
-    const o = q.options.find(x => x.code === r.choix);
+    const o = q.options.find(x => x.code === effectif(q));
+    const note = touche(q) ? "" : " (cochée d'avance)";
     lignes.push("## " + q.id + ". " + q.titre);
-    lignes.push("Choix : " + (o ? o.code + ". " + o.titre : "aucun"));
+    lignes.push("Choix : " + (o ? o.code + ". " + o.titre + note : (touche(q) ? "aucun, effacé" : "aucun")));
     if ((r.autre||"").trim()) lignes.push("Précision : " + r.autre.trim());
     lignes.push("");
   });
@@ -282,21 +508,22 @@ rendre();
   snap.docs.forEach(doc => { enBase[doc.id] = doc.data() || {}; });
   QUESTIONS.forEach(q => {
     const local = reponses[q.id], v = enBase[q.id];
-    const localRempli = local && (local.choix || (local.autre||"").trim());
+    const localRempli = local && !local.defaut && (local.choix || (local.autre||"").trim());
     // Une réponse vidée à la main garde son heure : c'est une réponse, et elle se compare comme
     // les autres. La traiter comme absente rendait au rechargement le texte que l'admin avait
     // effacé, si l'envoi du vide avait échoué (revue de code du 2026-09-27).
     if (!localRempli && !(local && local.maj)) {
-      if (v) { reponses[q.id] = {choix:v.choix || "", autre:v.autre || "", maj:v.maj || ""}; appliquer(q.id); }
+      if (v) { reponses[q.id] = {choix:v.choix || "", autre:v.autre || "", maj:v.maj || "", defaut:!!v.defaut}; appliquer(q.id); }
       return;
     }
-    if (!v) { if (localRempli) envoyer(q.id); return; }
+    // Ici l'admin a touché la question : sa réponse, même vide, part si la base ne l'a pas.
+    if (!v) { envoyer(q.id); return; }
     const pareil = (local.choix || "") === (v.choix || "") && (local.autre || "") === (v.autre || "");
     if (pareil) return;  // rien à écrire : la base a déjà cette réponse
     // Une réponse sans heure vient d'une version plus ancienne de cette page : elle a été donnée
     // dans ce navigateur, et elle y reste la plus récente.
     if (local.maj && (v.maj || "") > local.maj) {
-      reponses[q.id] = {choix:v.choix || "", autre:v.autre || "", maj:v.maj || ""};
+      reponses[q.id] = {choix:v.choix || "", autre:v.autre || "", maj:v.maj || "", defaut:!!v.defaut};
       appliquer(q.id);
     } else {
       envoyer(q.id);

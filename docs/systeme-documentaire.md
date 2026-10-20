@@ -77,7 +77,8 @@ n'existe pas.
 ## Le guide HTML et sa relecture
 
 Un projet équipé a, à terme, un guide HTML qui apprend comment il fonctionne. Il se crée avec le
-skill `/guide`, quand l'item de roadmap posé à l'installation arrive en tête.
+skill `/guide`, quand l'item de roadmap posé à l'installation arrive en tête. Le skill le génère
+une première fois et le commite, `guide.html` à la racine. Rien ne le régénère tout seul.
 
 **Un changement qui touche une mécanique expliquée entraîne une relecture.** Au commit,
 `scripts/rappel-guide.py` nomme ce qui est touché, en une ligne, sans rien bloquer.
@@ -85,6 +86,8 @@ skill `/guide`, quand l'item de roadmap posé à l'installation arrive en tête.
 - Le guide est encore juste : rien à faire.
 - Il ne l'est plus : on ne le corrige pas dans la foulée. Une ligne va dans `guide/backlog.md`,
   avec ce qui a changé et la date.
+- Une ligne du backlog traitée : on régénère `guide.html` par le générateur du projet, et on
+  le commite avec la correction.
 
 **Une ligne du backlog du guide n'est jamais une urgence.** Elle se traite quand on a le temps.
 L'agent ne la mentionne pas de lui-même, ni en fin de tour ni comme prochaine étape.
