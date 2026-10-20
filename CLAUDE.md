@@ -66,10 +66,10 @@ Dans la doc, sans son nom, qui est jetable.
 ## Anonyme partout
 
 La doc, les spécifications, la feuille de route, les commentaires **et les données de test** ne
-nomment aucune personne. Aucun prénom, ni réel ni fictif.
+nomment aucune personne réelle. Aucun prénom ne s'y invente, mais un personnage de fiction garde son nom.
 
-On parle des **utilisateurs**, de l'**admin**, d'**un des utilisateurs**, jamais d'un prénom,
-même inventé. Les chemins système d'exemple utilisent un caractère de remplacement.
+On parle des **utilisateurs**, de l'**admin**, d'**un des utilisateurs**. Un nom de la liste des
+prénoms interdits reste refusé. Les chemins système d'exemple utilisent un caractère de remplacement.
 
 ## Une seule langue pour tout ce qui naît
 
@@ -117,7 +117,7 @@ Plusieurs sessions travaillent en parallèle. Deux d'entre elles peuvent se déf
 > mécanique, la revue voit ce qu'ils ne regardent pas.
 
 **Première commande d'un dépôt fraîchement cloné**, `bash scripts/installer-hooks.sh`. Sans elle,
-ni doc-lint, ni code-lint, ni le hook de fusion. `core.hooksPath` et `merge.ff` se perdent au clone.
+ni doc-lint, ni code-lint, ni le hook de fusion. `core.hooksPath`, `merge.ff` et `pull.ff` se perdent au clone.
 
 ## Avant de coder, lever toute ambiguïté
 
@@ -299,8 +299,8 @@ trop, même si elle améliore quelque chose.
 
 ## Explorer ou documenter n'autorise pas à coder
 
-Le mandat d'un tour se limite à ce qui est explicitement demandé. Explorer, cadrer, documenter,
-répondre à une question de contenu, **rien de tout cela n'autorise à enchaîner sur du code**.
+Le mandat d'un tour se limite au demandé. Explorer, cadrer, documenter, répondre, **rien de cela
+n'autorise à coder ni à ouvrir un chantier**. La réponse situe tout sujet neuf dans roadmap et specs.
 
 Le passage en implémentation se **nomme** et se **confirme** avant la première ligne écrite. Une
 question posée en langage d'implémentation reste une question de cadrage, pas une autorisation de

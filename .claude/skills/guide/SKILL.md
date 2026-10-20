@@ -24,7 +24,8 @@ geste du lecteur.
 
 ## Ce que le skill produit
 
-- Un **générateur**, qui écrit `guide-apercu.html` par défaut, fichier ignoré par git.
+- Un **générateur**, qui écrit `guide.html` à la racine du dépôt.
+- Le **guide généré**, `guide.html`, commité à sa première génération.
 - Un fichier d'**explications rédigées**, sous `guide/`.
 - Le **backlog du guide**, `guide/backlog.md`, posé depuis
   [`references/gabarit-backlog.md`](references/gabarit-backlog.md).
@@ -67,9 +68,12 @@ le commit touche et que le guide explique, sans rien bloquer.
 
 ### 6. La livraison
 
-Une branche de travail ne commite jamais le guide généré, seulement l'aperçu ignoré. Deux
-branches qui le régénèrent se heurteraient à chaque fusion. Le projet choisit ensuite qui le
-publie. Un workflow sur la branche principale, ou personne.
+Le skill génère le guide une première fois et le commite, `guide.html` à la racine. Ensuite,
+rien ne le régénère tout seul, ni workflow ni hook.
+
+Un changement qui touche une mécanique expliquée atterrit dans le backlog du guide. Le guide se
+régénère et se recommite quand on traite une ligne du backlog, dans le même commit. Un conflit
+de fusion sur `guide.html` se résout en le régénérant, jamais à la main.
 
 ## La règle de mise à jour
 
@@ -79,6 +83,9 @@ ligne au backlog si besoin, et jamais d'urgence.
 
 ## L'exemple de référence
 
-Le guide de structure_projet applique tout ce qui précède. Son générateur est `generer-guide.py`,
-à la racine du dépôt du noyau, avec `guide/contenu.py` pour le rédigé. Si ce dépôt est
-voisin du projet, s'en inspirer vaut mieux que repartir de zéro.
+Le guide de structure_projet applique les étapes 1 à 5. Son générateur est `generer-guide.py`,
+à la racine du dépôt du noyau, avec `guide/contenu.py` pour le rédigé. Si ce dépôt est voisin
+du projet, s'en inspirer vaut mieux que repartir de zéro.
+
+Sa livraison ne suit pas l'étape 6. Un workflow le régénère sur la branche principale, et sa
+sortie par défaut est un aperçu ignoré. Un projet n'en reprend pas ce point.

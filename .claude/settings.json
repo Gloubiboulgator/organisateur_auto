@@ -68,6 +68,19 @@
             "command": "${CLAUDE_PROJECT_DIR}/scripts/garde-publication-non-sollicitee.sh"
           }
         ]
+      },
+      {
+        "matcher": "Artifact|SendUserFile",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/scripts/garde-options-sans-cas.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/scripts/garde-questions-illisibles.sh"
+          }
+        ]
       }
     ],
     "Stop": [

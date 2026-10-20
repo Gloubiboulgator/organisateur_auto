@@ -99,6 +99,8 @@ chemin inattendu.
 | `scripts/garde-offre-retrecie.sh` | une réponse qui accepte en nommant un geste plus étroit que l'offre, lue comme un accord entier | signale seulement |
 | `scripts/garde-sans-hooks.sh` | un geste git de l'agent qui saute les hooks, avec `--no-verify`, `commit -n` ou `core.hooksPath` désarmé | refuse l'appel d'outil |
 | `scripts/garde-depot-deploye.sh` | un geste git de l'agent qui fait quitter sa branche au répertoire que servent les units systemd, ou qui déplace cette branche. La liste des gestes vit en tête du script | refuse l'appel d'outil |
+| `scripts/garde-options-sans-cas.sh` | un questionnaire publié ou envoyé à l'admin dont une option à choisir ne dit pas dans quel cas elle gagne | refuse l'appel d'outil |
+| `scripts/garde-questions-illisibles.sh` | un questionnaire publié ou envoyé à l'admin dont une question à choisir n'a pas de scène, ou dont un titre, un « quand » ou une scène porte un sigle, un fichier, du code ou un nom d'outil | refuse l'appel d'outil |
 
 ### Le contrôle du noyau
 
@@ -144,10 +146,10 @@ beaucoup. Chaque clé est un début de titre de section dans [`../CLAUDE.md`](..
 | `Fait observé et fait supposé` | une croyance écrite comme un fait | oui, contrôle 14, et `scripts/garde-perte-seche.sh` pour la suppression |
 | `Le filet contre les livraisons invisibles` | un point de spec livré sans geste qui y mène | partiellement, le code-lint |
 | `Les quatre règles du dialogue` | une affirmation sans provenance nommable, ou une question déjà tranchée par le dépôt | partiellement, `scripts/garde-provenance-affirmee.sh` sur les décisions attribuées aux règles du dépôt, et `scripts/garde-incapacite-declaree.sh` sur l'impossibilité affirmée |
-| `Le ton des échanges` | du jargon sans glose, une image qui remplace le mécanisme, ou une réponse trop longue | partiellement, `scripts/garde-avis-non-sollicite.sh` sur la recommandation que rien n'a demandée |
+| `Le ton des échanges` | du jargon sans glose, une image qui remplace le mécanisme, une réponse trop longue, ou une commande donnée sans son dossier | partiellement, `scripts/garde-avis-non-sollicite.sh` sur la recommandation que rien n'a demandée |
 | `Un seul chantier à la fois` | plusieurs chantiers de front, en-cours illisible | non |
 | `Un changement ne contient` | une ligne changée qui ne remonte à aucune demande | partiellement, `scripts/garde-offre-retrecie.sh` sur le « ok » qui absorbe le geste nommé après lui |
-| `Explorer ou documenter` | du code écrit alors que le tour ne demandait qu'un cadrage | partiellement, `scripts/garde-avis-non-sollicite.sh` sur la recommandation que rien n'a demandée |
+| `Explorer ou documenter` | du code écrit, ou un chantier ouvert, alors que le tour ne demandait qu'une réponse | partiellement, `scripts/garde-avis-non-sollicite.sh` sur la recommandation que rien n'a demandée |
 | `Ce qui est fusionné part` | un correctif fusionné qui n'entre dans aucune version | non |
 
 ## Ce que le contrôle 15 vérifie

@@ -5,9 +5,10 @@
 # clone. Une session fraîche n'a donc, par défaut, NI doc-lint, NI code-lint, NI contrôle du
 # noyau, sans que rien ne le signale.
 #
-# Deux configurations, pas une.
+# Trois configurations, pas une.
 #   core.hooksPath  active les hooks versionnés de scripts/githooks/
 #   merge.ff false  sans commit de fusion, un hook de fusion ne se déclenche jamais
+#   pull.ff only    git pull suit merge.ff sans lui, et crée alors un commit de fusion vide
 set -euo pipefail
 racine=$(git rev-parse --show-toplevel)
 cd "$racine"
@@ -26,6 +27,7 @@ pose() {
 echo "== Garde-fous git =="
 pose core.hooksPath scripts/githooks
 pose merge.ff false
+pose pull.ff only
 
 manquants=""
 for h in pre-commit pre-merge-commit pre-push; do
