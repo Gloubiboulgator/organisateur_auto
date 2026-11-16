@@ -109,6 +109,20 @@
 # déjà parti ne perd rien, et le refuser gênerait sans protéger. Une accolade non développée,
 # elle, peut désigner tout l'arbre, et le garde n'a rien à montrer à l'admin.
 #
+# DEUX REFUS EN BLOC, ASSOUPLIS LE 2026-10-20
+# -------------------------------------------
+# Deux gestes étaient refusés sans que rien ne soit regardé. Les deux refus de ce soir-là ne
+# protégeaient rien, et l'admin a demandé de les revoir.
+#
+#   1. `git push --delete` sur la branche d'une demande déjà fusionnée. Tous ses commits étaient
+#      dans la branche principale. Il passe désormais quand chaque tête distante y est contenue.
+#   2. `git worktree remove --force` sur une copie posée sous /tmp. Le garde tient pourtant /tmp
+#      pour jetable dans un `rm`. Il passe désormais quand son commit tient sur une branche, et
+#      que ses fichiers non commités sont jetables. Sous une racine temporaire, ils le sont tous.
+#
+# Le même soir, un trou plus grave. Le garde lisait la sortie de git en anglais. Sur une machine
+# réglée en français, `git clean -fdx` passait sans être jugé. Git lui parle désormais anglais.
+#
 # COMMENT IL EST POSÉ
 # -------------------
 # Dans le gabarit des réglages du noyau, chemin en `${CLAUDE_PROJECT_DIR}`. Il suit donc le clone
@@ -175,8 +189,13 @@ def non_developpe(mot: str) -> bool:
     return SUBSTITUTION in mot or bool(re.search(r"[{}]|\$\(|`", mot))
 
 
+# GIT PARLE ANGLAIS AU GARDE, quelle que soit la langue de la machine. Le garde lit « Would
+# remove » dans `git clean -n`. En français, git écrivait « Supprimerait », et `git clean -fdx`
+# passait sans être jugé. Mesuré le 2026-10-20.
+GIT_EN_ANGLAIS = {**os.environ, "LC_ALL": "C", "LANGUAGE": ""}
+
 def git(cwd, *args):
-    r = subprocess.run(["git", "-C", cwd, *args], capture_output=True, text=True)
+    r = subprocess.run(["git", "-C", cwd, *args], capture_output=True, text=True, env=GIT_EN_ANGLAIS)
     return r.returncode, r.stdout
 
 _racines = {}
@@ -246,6 +265,98 @@ def ne_perd_rien(p: Path):
     `rmdir` d'un dossier vide était refusé, avec un motif qui disait lui-même « 0 fichier(s) ».
     Un refus dont le texte se contredit apprend à passer outre. Mesuré le 2026-09-10."""
     return p.is_dir() and not fichiers_sous(p)
+
+# Le distant se lit en direct, sous un butoir. Le garde lui-même est tué au-delà de trente secondes.
+BUTOIR_DISTANT = 10
+
+def branches_distantes_rendues(racine, args):
+    """Les refus d'un `git push --delete`, vides si chaque branche retirée est déjà fusionnée.
+
+    Une branche dont la tête distante est contenue dans la branche principale du distant ne perd
+    rien. Ses commits restent dans la principale. Les têtes se lisent sur le distant au moment du
+    geste, jamais dans une copie locale qui pourrait dater. Le refus total était un faux positif,
+    mesuré le 2026-10-20 sur une demande de fusion déjà fusionnée."""
+    refus_generique = ["git push --delete retire une branche du distant, que rien ne rend"]
+    libres = [a for a in args[1:] if not a.startswith("-")]
+    options = [a for a in args[1:] if a.startswith("-")]
+    # Une option inconnue peut changer ce que la poussée retire. Le garde ne la devine pas.
+    if any(o not in ("--delete", "-d", "-q", "--quiet", "-v", "--verbose") for o in options):
+        return refus_generique
+    if len(libres) < 2:
+        return refus_generique
+    distant, branches = libres[0], [b.removeprefix("refs/heads/") for b in libres[1:]]
+    if any(non_developpe(b) or not b or ":" in b for b in branches):
+        return refus_generique
+    # La poussée écrit à l'adresse de poussée du distant, qui peut viser un autre dépôt que celle
+    # de lecture. C'est elle qui se lit. Un distant écrit en adresse se lit tel quel.
+    rc, adresse = git(racine, "remote", "get-url", "--push", distant)
+    cible = adresse.strip() if not rc and adresse.strip() else distant
+    try:
+        r = subprocess.run(["git", "-C", racine, "ls-remote", "--symref", cible, "HEAD",
+                            *[f"refs/heads/{b}" for b in branches]],
+                           capture_output=True, text=True, timeout=BUTOIR_DISTANT, env=GIT_EN_ANGLAIS)
+    except subprocess.TimeoutExpired:
+        return [f"git push --delete : le distant « {distant} » n'a pas répondu, le garde ne sait "
+                f"pas si ses branches sont fusionnées"]
+    if r.returncode:
+        return [f"git push --delete : le garde n'a pas su lire le distant « {distant} »"]
+    principale, tetes = None, {}
+    for ligne in r.stdout.splitlines():
+        champs = ligne.split("\t")
+        if champs[0].startswith("ref: ") and champs[-1] == "HEAD":
+            principale = champs[0][len("ref: "):].removeprefix("refs/heads/")
+        elif len(champs) == 2:
+            tetes[champs[1].removeprefix("refs/heads/")] = champs[0]
+    if not principale or "HEAD" not in tetes:
+        return [f"git push --delete : le distant « {distant} » ne dit pas sa branche principale"]
+    # Juste après une fusion faite sur le distant, son commit n'est pas encore ici. Le comparer
+    # sortait en erreur, et le refus accusait la branche à tort.
+    if git(racine, "cat-file", "-e", f"{tetes['HEAD']}^{{commit}}")[0]:
+        return [f"git push --delete : la tête de {principale} sur « {distant} » est inconnue ici, "
+                f"un git fetch la rapporte"]
+    refus_ = []
+    for b in branches:
+        tete = tetes.get(b)
+        if b == principale:
+            refus_.append(f"git push --delete retirerait {b}, la branche principale du distant")
+        elif not tete:
+            refus_.append(f"git push --delete : la branche {b} n'existe pas sur « {distant} »")
+        elif git(racine, "cat-file", "-e", f"{tete}^{{commit}}")[0]:
+            refus_.append(f"git push --delete : la tête distante de {b} est inconnue ici, ses "
+                          f"commits ne sont peut-être nulle part ailleurs")
+        elif git(racine, "merge-base", "--is-ancestor", tete, tetes["HEAD"])[0]:
+            refus_.append(f"git push --delete : {b} porte des commits que {principale} n'a pas")
+    return refus_
+
+def worktree_rendu(racine, args):
+    """Les refus d'un `git worktree remove --force`, vides si rien ne s'y perd.
+
+    Son commit courant doit tenir sur une branche, où qu'il soit posé. Sous une racine
+    temporaire, ses fichiers sont jetables, comme tout ce qui y vit. Ailleurs, seuls ses fichiers
+    jetables peuvent rester non commités. Le refus total était un faux positif, mesuré le
+    2026-10-20 sur un worktree du dossier de travail de la session."""
+    libres = [a for a in args[2:] if not a.startswith("-")]
+    if len(libres) != 1 or non_developpe(libres[0]):
+        return ["git worktree remove --force : jette un arbre de travail modifié"]
+    chemin = os.path.normpath(os.path.join(racine, libres[0]))
+    if not os.path.isdir(chemin):
+        return [f"git worktree remove --force : le garde n'a pas su lire l'arbre « {libres[0]} »"]
+    # SOUS /tmp, SES FICHIERS SONT JETABLES, PAS SES COMMITS. Ceux-là vivent dans le dépôt. Un
+    # commit qu'aucune branche ne porte partirait avec le worktree, où qu'il soit posé.
+    if not sous_racine_temporaire(chemin):
+        rc, statut = git(chemin, "status", "--porcelain", "--untracked-files=all", "--ignored")
+        if rc:
+            return [f"git worktree remove --force : le garde n'a pas su lire l'arbre « {libres[0]} »"]
+        perdus = [l[3:] for l in statut.splitlines()
+                  if not (l[:2] in ("??", "!!") and est_jetable(Path(chemin, l[3:]), set()))]
+        if perdus:
+            return [f"git worktree remove --force jetterait {len(perdus)} chemin(s) non commité(s) : "
+                    f"{', '.join(perdus[:5])}"]
+    rc, seuls = git(chemin, "rev-list", "HEAD", "--not", "--branches", "--remotes")
+    if rc or seuls.split():
+        return [f"git worktree remove --force : le commit courant de « {libres[0]} » ne tient sur "
+                f"aucune branche"]
+    return []
 
 def inventaire(chemins):
     fichiers = []
@@ -1007,9 +1118,9 @@ while a_juger:
             elif sous == "push" and any(a.startswith("+") for a in args[1:]):
                 refus.append("git push d'un refspec en « + » : forçage écrit autrement, même perte"); continue
             elif sous == "push" and any(a in ("--delete", "-d") for a in args):
-                refus.append("git push --delete retire une branche du distant, que rien ne rend"); continue
+                refus += branches_distantes_rendues(racine, args); continue
             elif sous == "worktree" and args[1:2] == ["remove"] and "--force" in args:
-                refus.append("git worktree remove --force : jette un arbre de travail modifié"); continue
+                refus += worktree_rendu(racine, args); continue
             else:
                 continue
         else:

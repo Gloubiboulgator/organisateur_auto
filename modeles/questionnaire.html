@@ -1,7 +1,7 @@
 <!doctype html>
 <!--
-  Modèle de questionnaire, pour une série de plus de trois questions à l'admin.
-  La règle vit dans docs/ton-des-echanges.md, section « Plus de trois questions à poser ».
+  Modèle de questionnaire, pour une série de deux questions ou plus à l'admin.
+  La règle vit dans docs/ton-des-echanges.md, section « Deux questions ou plus à poser ».
 
   Pour s'en servir, copier ce fichier, puis changer cinq choses.
   1. LE THÈME. Les jetons de couleur et les trois polices du bloc :root viennent du sujet
@@ -38,9 +38,13 @@
   - sources : {ref, cit, nom, url}. La citation est mot pour mot, le lien ouvre le fichier.
   Chaque chiffre porte son échelle, en euros, en durée ou en parties jouées.
 
-  Avant de publier, la lecture à froid. Un agent sans accès au dépôt lit chaque carte, et redit
+  Avant de publier, une page qui porte un choix passe la revue de conception. Un agent qui a le
+  dépôt juge chaque option sur ce qu'elle fait vivre à l'utilisateur. L'appel nomme la page et dit
+  « revue de conception ». Le garde scripts/garde-revue-de-conception.sh le vérifie.
+
+  Ensuite, la lecture à froid. Un agent sans accès au dépôt lit chaque carte, et redit
   en une phrase ce qui se décide et ce que change chaque réponse. Une carte qu'il ne sait pas
-  redire se réécrit.
+  redire se réécrit, puis repasse la lecture. L'appel qui lance la lecture nomme la page.
 
   La recommandée est cochée d'avance, et n'est pas écrite dans la base tant que l'admin n'y
   touche pas : une question sans réponse enregistrée vaut la recommandée. Le premier geste de

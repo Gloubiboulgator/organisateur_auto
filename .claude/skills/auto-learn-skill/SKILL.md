@@ -161,7 +161,7 @@ L'insertion couvre les fichiers du bloc 6 et les deux blocs prêts à coller du 
 les trie en deux tas.
 
 - Les fichiers du projet s'éditent ici, puis suivent le chemin ordinaire d'un chantier. Branche
-  jetable, demande de fusion en brouillon, revue.
+  jetable, demande de fusion en brouillon, puis prête, et la revue.
 - Les fichiers du noyau, ceux que liste `.noyau-empreintes`, se corrigent dans leur source, sur
   une branche du dépôt du noyau, puis se rediffusent. Édités sur place, `scripts/verifier-noyau.sh`
   refuse le commit. Si la source est hors d'atteinte, le dire, et laisser ces fichiers prêts à

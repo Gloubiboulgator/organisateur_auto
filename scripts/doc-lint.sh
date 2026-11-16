@@ -46,11 +46,19 @@ export DETTES_DOC="scripts/dette-doc.txt:scripts/dette-doc-local.txt"
 export DETTES_CODE="scripts/dette-code.txt:scripts/dette-code-local.txt"
 BACK=specs/roadmap-backlog.md         # le registre des items, s'il existe
 
-section() { printf '\n\033[1m== %s ==\033[0m\n' "$1"; }
+# UN CONTRÔLE VERT SE TAIT. Sa ligne restait dans le contexte de l'agent à chaque commit, pour
+# ne rien dire. Seul le décompte final le rappelle, et un échec affiche toujours sa section. Un
+# contrôle sans objet garde sa ligne d'information, qui nomme ce qu'elle concerne.
+section_courante=""
+passes=0
+section() { section_courante="$1"; }
 # check <libellé> <sortie> : appelé SANS pipe, pour que `fail` se propage.
 check() {
-  if [ -n "$2" ]; then printf '  ❌ %s\n' "$1"; printf '%s\n' "$2" | sed 's/^/      /'; fail=1
-  else printf '  ✅ %s\n' "$1"; fi
+  if [ -n "$2" ]; then
+    [ -z "$section_courante" ] || printf '\n\033[1m== %s ==\033[0m\n' "$section_courante"
+    section_courante=""
+    printf '  ❌ %s\n' "$1"; printf '%s\n' "$2" | sed 's/^/      /'; fail=1
+  else passes=$((passes + 1)); fi
 }
 # garde_plante <code> <sortie> : un contrôle qui PLANTE doit crier, pas se taire. Sans lui, un
 # heredoc python qui lève écrit sa trace sur la sortie d'erreur, la capture reste vide, et
@@ -112,7 +120,7 @@ out=$(garde_plante $? "$out")
 check "aucun lien interne cassé" "$out"
 
 
-# 2) Anonymat : aucun prénom, dans AUCUN fichier suivi.
+# 2) Anonymat : aucun prénom de la liste interdite, dans AUCUN fichier suivi.
 #    La règle vise la doc, les specs, les commentaires ET les données de test. Le contrôle ne
 #    lisait que les .md, donc il ne couvrait ni le code ni les jeux d'essai, alors que la table
 #    du système documentaire promet « nulle part ». Il lit maintenant tout ce que git suit, en
@@ -460,7 +468,7 @@ if not suivis:
     # indistinguable d'une vraie vérification. Il le dit maintenant (audit). Ce
     # n'est PAS un échec : ce contrôle ne juge qu'un changement en cours, par construction —
     # d'où le préfixe INFO:, que le shell affiche à part au lieu de le compter comme une erreur.
-    print("INFO: rien à comparer (arbre propre) — ce contrôle ne mesure qu'un changement en cours")
+    print("INFO: dette de prose, rien à comparer (arbre propre) — seul un changement en cours se mesure")
 # Une FUSION a deux parents, et ce contrôle n'en voyait qu'un (corrigé). Comparé au
 # seul HEAD, tout fichier de la dette que la branche fusionnée a touché paraît empiré, alors que
 # la fusion n'y a rien ajouté. Le premier merge venu butait dessus, et la seule issue était de
@@ -819,7 +827,9 @@ check "le glossaire exigé par le noyau est en place" "$out"
 # banale collision de nom, rendait « tout est vert » alors que des contrôles du noyau venaient de
 # rougir. Le hook ne lit que le code de sortie, donc le commit fautif passait. Le sous-shell rend
 # ce fichier incapable de toucher au verdict du noyau, et son propre verdict remonte par la
-# sortie. Une redéfinition de check() ou de section() y est enfermée de la même façon.
+# sortie. Une redéfinition de check() ou de section() y est enfermée de la même façon. Il repart
+# sans section courante : son premier échec ne s'affiche pas sous un titre du noyau. Son décompte
+# se dit à part, car un contrôle vert se tait : un arrêt précoce du fichier se verrait sinon nulle part.
 #
 # LE FICHIER LOCAL DOIT AVOIR TOURNÉ POUR QUE SON VERT COMPTE. Une faute de syntaxe, ou des
 # droits qui empêchent la lecture, interrompaient le sourçage sans un mot : les contrôles
@@ -837,8 +847,13 @@ if [ -f scripts/doc-lint-local.sh ]; then
     printf '%s\n' "$erreur" | sed 's/^/      /'
     fail=1
   else
-    # shellcheck source=/dev/null
-    ( fail=0; . scripts/doc-lint-local.sh; exit "$fail" )
+    (
+      fail=0; section_courante=""; passes=0
+      # shellcheck source=/dev/null
+      . scripts/doc-lint-local.sh
+      [ "$passes" -eq 0 ] || printf '  %s contrôle(s) du projet passé(s).\n' "$passes"
+      exit "$fail"
+    )
     fail_local=$?
     if [ "$fail_local" -gt 1 ]; then
       printf '  ❌ %s\n' "scripts/doc-lint-local.sh s'est interrompu (code $fail_local)"
@@ -853,4 +868,4 @@ if [ "$fail" -ne 0 ]; then
   printf '\n\033[1;31m❌ doc-lint : au moins un contrôle a échoué (voir ci-dessus).\033[0m\n'
   exit 1
 fi
-printf '\n\033[1;32m✅ doc-lint : tout est vert.\033[0m\n'
+printf '\n\033[1;32m✅ doc-lint : tout est vert, %s contrôle(s) du noyau passé(s).\033[0m\n' "$passes"

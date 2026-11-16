@@ -42,7 +42,8 @@ on liste. Un pavé se balaie, il ne se lit pas.
 <!-- /sync:etalon-redaction -->
 
 La mesure vit dans [`../scripts/doc-mesure.py`](../scripts/doc-mesure.py). C'est un outil de
-suivi, qui n'échoue jamais, à ne pas confondre avec le doc-lint.
+suivi, qui n'échoue jamais, à ne pas confondre avec le doc-lint. Elle ne se lance pas à chaque
+texte : le doc-lint impose déjà l'étalon au commit, et seule la création d'un skill la demande.
 
 **Conforme ne vaut pas validé.** Une réécriture n'est faite qu'après relecture de l'admin.
 L'étalon mesure la forme, pas le goût.

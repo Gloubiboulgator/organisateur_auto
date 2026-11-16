@@ -48,7 +48,28 @@ cd "$root"
 temoin="$(git rev-parse --git-common-dir)/temoin-pousser-local"
 
 # ── Garde : sans hooks, rien de ce qui suit n'est garanti au commit ────────────────────────────
-if [ "$(git config --get core.hooksPath || true)" != "scripts/githooks" ]; then
+# UN CHEMIN ABSOLU VERS LES MÊMES HOOKS VAUT LE CHEMIN RELATIF (relevé le 2026-10-24). Une copie
+# de travail que l'appli Claude crée pour une session pointe vers les hooks du dépôt principal,
+# en chemin absolu. Le garde exigeait le texte exact « scripts/githooks », et refusait donc de
+# pousser depuis une copie pourtant armée. On compare désormais les dossiers, une fois résolus.
+# LA RÉSOLUTION PASSE PAR cd ET pwd -P, sans realpath -m ni git rev-parse --path-format. Le
+# premier manque à macOS, le second à git avant 2.31, et set -e arrêtait alors toute poussée.
+# CDPATH se vide, sinon cd peut viser un autre dossier et l'écrire en sortie. Un dossier absent
+# rend un texte vide, et le garde refuse alors : des hooks qui n'existent pas ne valent rien.
+resoudre() { if [ -d "$1" ]; then (CDPATH='' cd -- "$1" && pwd -P); fi; }
+hooks=$(git config --get core.hooksPath || true)
+# git développe « ~ » dans ce réglage, le garde aussi.
+case "$hooks" in "~"|"~/"*) hooks="$HOME${hooks#\~}" ;; esac
+case "$hooks" in
+    "") hooks_resolu="" ;;
+    /*|[A-Za-z]:[/\\]*) hooks_resolu=$(resoudre "$hooks") ;;  # un chemin Windows est absolu aussi
+    *) hooks_resolu=$(resoudre "$root/$hooks") ;;
+esac
+commun=$(resoudre "$(git rev-parse --git-common-dir)")
+principal=$(dirname "$commun")
+ici=$(resoudre "$root/scripts/githooks")
+la_bas=$(resoudre "$principal/scripts/githooks")
+if [ -z "$hooks_resolu" ] || { [ "$hooks_resolu" != "$ici" ] && [ "$hooks_resolu" != "$la_bas" ]; }; then
     echo "pousser.sh : REFUSÉ — les hooks git ne sont pas posés dans ce dépôt." >&2
     echo "             Lance d'abord : bash scripts/installer-hooks.sh" >&2
     exit 1

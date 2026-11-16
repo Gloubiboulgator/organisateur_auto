@@ -1,0 +1,56 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["premiere_impression", "comprehension_finale", "ecart_avec_la_fiche", "parcours",
+               "frictions", "points_forts", "abandon", "avis_general"],
+  "properties": {
+    "premiere_impression": {
+      "type": "string",
+      "description": "Après le premier écran, ce que tu crois que fait l'app, et ce que tu comptes faire."
+    },
+    "comprehension_finale": {
+      "type": "string",
+      "description": "À la fin, ce que fait l'app selon toi, en deux ou trois phrases."
+    },
+    "ecart_avec_la_fiche": {
+      "type": "string",
+      "description": "Ce qui ne correspond pas à ce que la fiche promettait. « Aucun » si tout correspond."
+    },
+    "parcours": {
+      "type": "string",
+      "description": "Ce que tu as fait, dans l'ordre, en quelques phrases."
+    },
+    "frictions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["capture", "gravite", "constat", "pourquoi"],
+        "properties": {
+          "capture": {"type": "string", "description": "La capture où ça se voit, par exemple captures/007.jpg."},
+          "gravite": {"type": "string", "enum": ["bloquant", "genant", "detail"]},
+          "constat": {"type": "string", "description": "Ce qui est mal expliqué, mal fait ou pas logique."},
+          "pourquoi": {"type": "string", "description": "Ce que tu attendais à la place, ou ce qui t'a induit en erreur."}
+        }
+      }
+    },
+    "points_forts": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "abandon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["abandonne", "capture", "raison"],
+      "properties": {
+        "abandonne": {"type": "boolean", "description": "Vrai si tu as arrêté parce que tu étais bloqué, perdu ou lassé."},
+        "capture": {"type": "string", "description": "La capture où tu as arrêté. Vide si tu n'as pas abandonné."},
+        "raison": {"type": "string"}
+      }
+    },
+    "avis_general": {
+      "type": "string",
+      "description": "Le conseillerais-tu à quelqu'un, et pourquoi, en une ou deux phrases."
+    }
+  }
+}

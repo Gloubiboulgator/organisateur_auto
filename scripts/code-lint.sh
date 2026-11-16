@@ -10,10 +10,17 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 
 fail=0
-section() { printf '\n\033[1m== %s ==\033[0m\n' "$1"; }
+# UN CONTRÔLE VERT SE TAIT. Sa ligne restait dans le contexte de l'agent à chaque commit, pour
+# ne rien dire. Seul le décompte final le rappelle, et un échec affiche toujours sa section.
+section_courante=""
+passes=0
+section() { section_courante="$1"; }
 check() {
-  if [ -n "$2" ]; then printf '  ❌ %s\n' "$1"; printf '%s\n' "$2" | sed 's/^/      /'; fail=1
-  else printf '  ✅ %s\n' "$1"; fi
+  if [ -n "$2" ]; then
+    [ -z "$section_courante" ] || printf '\n\033[1m== %s ==\033[0m\n' "$section_courante"
+    section_courante=""
+    printf '  ❌ %s\n' "$1"; printf '%s\n' "$2" | sed 's/^/      /'; fail=1
+  else passes=$((passes + 1)); fi
 }
 # garde_plante <code> <sortie> : un contrôle qui PLANTE doit crier, pas se taire. Sans lui, un
 # heredoc qui lève écrit sa trace sur la sortie d'erreur, la capture reste vide, et check()
@@ -56,7 +63,9 @@ check "aucun assert n'accepte deux formes du même élément" "$out"
 # banale collision de nom, rendait « tout est vert » alors que des contrôles du noyau venaient de
 # rougir. Le hook ne lit que le code de sortie, donc le commit fautif passait. Le sous-shell rend
 # ce fichier incapable de toucher au verdict du noyau, et son propre verdict remonte par la
-# sortie. Une redéfinition de check() ou de section() y est enfermée de la même façon.
+# sortie. Une redéfinition de check() ou de section() y est enfermée de la même façon. Il repart
+# sans section courante : son premier échec ne s'affiche pas sous un titre du noyau. Son décompte
+# se dit à part, car un contrôle vert se tait : un arrêt précoce du fichier se verrait sinon nulle part.
 #
 # LE FICHIER LOCAL DOIT AVOIR TOURNÉ POUR QUE SON VERT COMPTE. Une faute de syntaxe placée
 # AVANT le premier contrôle laisse « fail » à zéro dans le sous-shell : il sortait en zéro, et le
@@ -72,8 +81,13 @@ if [ -f scripts/code-lint-local.sh ]; then
     printf '%s\n' "$erreur" | sed 's/^/      /'
     fail=1
   else
-    # shellcheck source=/dev/null
-    ( fail=0; . scripts/code-lint-local.sh; exit "$fail" )
+    (
+      fail=0; section_courante=""; passes=0
+      # shellcheck source=/dev/null
+      . scripts/code-lint-local.sh
+      [ "$passes" -eq 0 ] || printf '  %s contrôle(s) du projet passé(s).\n' "$passes"
+      exit "$fail"
+    )
     fail_local=$?
     if [ "$fail_local" -gt 1 ]; then
       printf '  ❌ %s\n' "scripts/code-lint-local.sh s'est interrompu (code $fail_local)"
@@ -88,4 +102,4 @@ if [ "$fail" -ne 0 ]; then
   printf '\n\033[1;31m❌ code-lint : au moins un contrôle a échoué (voir ci-dessus).\033[0m\n'
   exit 1
 fi
-printf '\n\033[1;32m✅ code-lint : tout est vert.\033[0m\n'
+printf '\n\033[1;32m✅ code-lint : tout est vert, %s contrôle(s) du noyau passé(s).\033[0m\n' "$passes"

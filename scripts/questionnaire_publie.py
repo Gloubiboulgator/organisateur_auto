@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Ce que porte le tableau QUESTIONS d'un questionnaire sur le point d'être envoyé à l'admin.
 
-UN seul lecteur, deux gardes. `garde-options-sans-cas.sh` et `garde-questions-illisibles.sh`
+UN seul lecteur, quatre gardes. `garde-options-sans-cas.sh` et `garde-questions-illisibles.sh`
 lisaient chacun la page à sa façon, par des expressions régulières. La revue du 2026-10-14 y a
 trouvé sept lectures fausses, toutes reproduites sur le modèle de page.
 
@@ -13,7 +13,11 @@ trouvé sept lectures fausses, toutes reproduites sur le modèle de page.
 - Les deux gardes ne trouvaient pas la fin du tableau de la même façon.
 
 Ce lecteur découpe le JavaScript en jetons, chaînes et commentaires compris, puis lit le
-tableau comme une valeur. Les deux gardes jugent ainsi la même chose.
+tableau comme une valeur. Les deux gardes des cartes jugent ainsi la même chose.
+
+`garde-lecture-a-froid.sh` en prend `pages_envoyees`, `est_questionnaire` et la lecture des
+retouches du même message. `garde-revue-de-conception.sh` y ajoute `porte_un_choix`, pour ne
+juger que les pages qui portent une carte à choisir.
 
 CE QUI EST UN QUESTIONNAIRE. Une page HTML qui déclare VALIDER et QUESTIONS, comme le modèle.
 Un quiz de jeu qui n'a que QUESTIONS n'est pas jugé.
@@ -29,8 +33,8 @@ UNE VALEUR QU'IL NE SAIT PAS CALCULER NE COMPTE NI POUR PRÉSENTE NI POUR ABSENT
 constante, un gabarit à substitution ou un calcul se taisent. `null`, `undefined` et `false`,
 eux, sont des absences.
 
-UN QUESTIONNAIRE ILLISIBLE SE DIT. Une page qui déclare VALIDER et QUESTIONS, dont aucun
-tableau ne se lit, sort une ligne qui commence par « ? ». Le garde des questions demande
+UN QUESTIONNAIRE ILLISIBLE SE DIT. Une page qui déclare VALIDER et QUESTIONS, dont aucune
+question ne se lit, sort une ligne qui commence par « ? ». Le garde des questions demande
 alors confirmation, au lieu de laisser passer en silence.
 
 Usage, depuis un garde : la charge du hook sur l'entrée, puis `options` ou `illisibles`. Une
@@ -39,6 +43,7 @@ faute par ligne en sortie, déjà échappée pour une chaîne JSON. Rien en sort
 """
 from __future__ import annotations
 
+import datetime
 import json
 import os
 import re
@@ -286,29 +291,72 @@ def _declarations(texte: str, nom: str) -> list[int]:
     return positions
 
 
+def est_questionnaire(texte: str) -> bool:
+    """Vrai si la page déclare VALIDER et QUESTIONS, que son tableau se lise ou non."""
+    return bool(_declarations(texte, "VALIDER") and _declarations(texte, "QUESTIONS"))
+
+
 ILLISIBLE = "illisible"
 
 
 def questions(texte: str) -> list[dict] | str | None:
     """Les questions de tous les tableaux QUESTIONS lisibles de la page.
 
-    None si la page n'est pas un questionnaire. ILLISIBLE si elle en est un, mais qu'aucun de
-    ses tableaux ne se lit.
+    None si la page n'est pas un questionnaire. ILLISIBLE si elle en est un, mais qu'aucune
+    question ne s'y lit. Des questions bâties par un appel en sont, le 2026-10-26.
     """
     if not _declarations(texte, "VALIDER"):
         return None
-    qs, rate = [], False
-    for debut in _declarations(texte, "QUESTIONS"):
+    debuts = _declarations(texte, "QUESTIONS")
+    if not debuts:
+        return None
+    qs = []
+    for debut in debuts:
         try:
             lu = _Lecteur(jetons(texte, debut))
             tableau = _tableau(lu) if lu.voir() == ("signe", "[") else []
         except Illisible:
-            rate = True
             continue
         qs += [q for q in tableau if isinstance(q, dict) and "id" in q]
-    if not qs:
-        return ILLISIBLE if rate else None
-    return qs
+    return qs or ILLISIBLE
+
+
+SCRIPT = re.compile(r"<script\b[^>]*>(.*?)</script\s*>", re.S | re.I)
+
+
+def porte_un_choix(texte: str) -> bool:
+    """Vrai si une carte de la page peut être à choisir. Le doute compte comme un choix.
+
+    Les cartes ne se lisent pas toutes dans le tableau QUESTIONS. Un étalement, un `push` ou une
+    fonction qui bâtit la carte y échappent. Chaque clé `options` des scripts de la page se lit
+    donc, où qu'elle soit. La page ne porte que des textes à valider si toutes valent VALIDER.
+
+    Une carte lisible sans `options` est un choix, comme pour estChoix du modèle et pour
+    `questions_illisibles`.
+    """
+    for script in SCRIPT.findall(texte):
+        try:
+            flux = list(jetons(script, 0))
+        except Illisible:
+            return True
+        for i, (sorte, valeur) in enumerate(flux):
+            if valeur != "options" or sorte not in ("nom", "chaine") or i == 0:
+                continue
+            # Une clé d'objet suit une accolade ou une virgule. Ailleurs, « options » est une
+            # chaîne ou une variable, comme la classe CSS du modèle.
+            if flux[i - 1] not in (("signe", "{"), ("signe", ",")):
+                continue
+            suite = flux[i + 1:i + 3]
+            if suite and suite[0] == ("signe", ":"):
+                if suite[1:] != [("nom", "VALIDER")]:
+                    return True
+            elif sorte == "nom" and suite and suite[0] in (("signe", ","), ("signe", "}")):
+                return True
+    qs = questions(texte)
+    if qs == ILLISIBLE:
+        return True
+    return any(not (isinstance(q.get("options"), Nom) and q["options"].nom == "VALIDER")
+               for q in qs or [])
 
 
 def nom_de(q: dict) -> str:
@@ -367,6 +415,81 @@ def questions_illisibles(qs: list[dict]) -> list[str]:
                 if trouve:
                     fautes.append(f"{nom_de(q)} {champ} : {nom} « {trouve.group(0)} »")
     return fautes
+
+
+# LES RETOUCHES FAITES DANS LE MÊME MESSAGE QU'UN APPEL D'AGENT.
+# Les deux gardes de relecture comparent l'heure de l'appel à la dernière écriture de la page.
+# Une retouche lancée dans le même message, juste avant l'appel, peut porter une heure plus
+# tardive. Ce qui suit dit si une telle retouche a laissé la page telle que l'agent l'a lue.
+#
+# OBSERVÉ le 2026-11-07, sur la transcription d'un run de ramasser-pr. Chaque appel d'outil d'un
+# message a sa propre entrée, qui porte l'identifiant du message. Les appels s'y suivent dans
+# l'ordre, chacun après le retour du précédent. Le retour d'une retouche y datait de trois
+# millisecondes après l'écriture du fichier.
+RETOUCHES = ("Write", "Edit", "MultiEdit", "NotebookEdit")
+
+
+def heure(entree: dict) -> float | None:
+    """L'heure d'une entrée du journal, en secondes, ou None si elle n'en porte pas."""
+    try:
+        return datetime.datetime.fromisoformat(entree["timestamp"].replace("Z", "+00:00")).timestamp()
+    except Exception:
+        return None
+
+
+def retouches_reussies(lignes: list[str], cwd: str) -> list[tuple]:
+    """Les retouches de fichier réussies : (ligne, bloc, message, chemin réel, heure du retour).
+
+    UN FILTRE DE TEXTE PASSE AVANT LE DÉCODAGE. Seules se décodent les lignes qui nomment un
+    outil de retouche, ou l'identifiant d'une retouche qui attend son retour. Une image du
+    journal ne coûte donc qu'une recherche de texte.
+    """
+    attente, faites = {}, []
+    noms = tuple(f'"{nom}"' for nom in RETOUCHES)
+    for n, ligne in enumerate(lignes):
+        if not any(nom in ligne for nom in noms) and not any(i in ligne for i in attente):
+            continue
+        try:
+            e = json.loads(ligne)
+        except Exception:
+            continue
+        if not isinstance(e, dict) or e.get("isSidechain"):
+            continue
+        message = e.get("message") if isinstance(e.get("message"), dict) else {}
+        contenu = message.get("content")
+        for k, bloc in enumerate(contenu if isinstance(contenu, list) else []):
+            if not isinstance(bloc, dict):
+                continue
+            if e.get("type") == "assistant" and bloc.get("type") == "tool_use" \
+                    and bloc.get("name") in RETOUCHES and isinstance(bloc.get("id"), str):
+                entree = bloc.get("input") or {}
+                f = entree.get("file_path") or entree.get("notebook_path")
+                if isinstance(f, str):
+                    attente[bloc["id"]] = (n, k, message.get("id"), os.path.realpath(os.path.join(cwd, f)))
+            elif bloc.get("type") == "tool_result" and bloc.get("tool_use_id") in attente:
+                place = attente.pop(bloc["tool_use_id"])
+                if bloc.get("is_error") is not True:
+                    faites.append((*place, heure(e)))
+    return faites
+
+
+def retouchee_dans_le_message(faites: list[tuple], place: tuple, mid, page: str, fin, ecrite: float) -> bool:
+    """Vrai si une retouche de la page, dans le même message et avant l'appel, couvre la relecture.
+
+    La retouche doit avoir réussi, et son retour dater d'après la dernière écriture de la page.
+    Rien ne l'a donc changée depuis, ni un outil lancé en parallèle, ni un échec.
+
+    Le retour de l'appel doit dater, lui aussi, d'après la page. Le journal arrondit à la
+    milliseconde, d'où la marge.
+
+    UNE HEURE DE FICHIER À LA SECONDE NE PROUVE RIEN. Un montage réseau en rend parfois. Une
+    écriture plus tardive, dans la même seconde, s'y cacherait derrière la retouche.
+    """
+    if mid is None or fin is None or fin + 0.001 < ecrite or ecrite == int(ecrite):
+        return False
+    page = os.path.realpath(page)
+    return any((i, k) < place and m == mid and f == page and h is not None and h + 0.001 >= ecrite
+               for i, k, m, f, h in faites)
 
 
 def main() -> None:

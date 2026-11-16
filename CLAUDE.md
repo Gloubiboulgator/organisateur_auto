@@ -65,8 +65,8 @@ Dans la doc, sans son nom, qui est jetable.
 
 ## Anonyme partout
 
-La doc, les spécifications, la feuille de route, les commentaires **et les données de test** ne
-nomment aucune personne réelle. Aucun prénom ne s'y invente, mais un personnage de fiction garde son nom.
+La doc, les spécifications, la feuille de route, les commentaires **et les données de test** ne nomment
+aucune personne réelle ni prénom inventé. Un personnage de fiction que le produit montre ou cite se nomme. L'auteur d'une source citée aussi, une référence de lecture et non une personne du projet.
 
 On parle des **utilisateurs**, de l'**admin**, d'**un des utilisateurs**. Un nom de la liste des
 prénoms interdits reste refusé. Les chemins système d'exemple utilisent un caractère de remplacement.
@@ -96,15 +96,15 @@ Un dépôt qui mélange deux vocabulaires pour le même sens coûte une recherch
 ## Plusieurs sessions à la fois
 
 Plusieurs sessions travaillent en parallèle. Deux d'entre elles peuvent se défaire l'une l'autre
-**sans aucun conflit git**, avec d'autres mots.
+**sans aucun conflit git**, avec d'autres mots. Dix agents ou plus suivent [`docs/chantiers-a-plusieurs-agents.md`](docs/chantiers-a-plusieurs-agents.md).
 
 - **Une session ne pousse jamais la branche principale.** Elle pousse sa branche et ouvre une
-  demande de fusion **en brouillon**.
-- **La revue de code sort une demande de fusion du brouillon.** Une grosse session y finit,
-  contrôles et tests verts compris. On lance la revue, on traite ce qu'elle trouve, et seulement
-  ensuite on la sort du brouillon.
+  demande de fusion **en brouillon**. Un simple ajout à la roadmap ou au journal, elle le fusionne sans revue.
+- **Une session finie sort sa demande du brouillon**, contrôles et tests verts. « Prête » dit
+  « fini, à relire ». **La revue se fait ensuite, jamais par la session qui a écrit.** Elle
+  vient avec la fusion, sur le geste de l'admin. Une demande qu'elle refuse repasse en brouillon.
 - **Ramasser passe avant d'ouvrir un chantier.** Une session qui prend la branche principale
-  traite d'abord les demandes de fusion prêtes. Une branche finie qui attend pourrit.
+  signale d'abord les demandes de fusion prêtes. Une branche finie qui attend pourrit.
 - **Avant de réécrire un fichier existant**, vérifier qu'il n'a pas bougé en amont depuis la base
   de travail. S'il a bougé, fusionner l'amont **avant** de réécrire.
 
@@ -153,9 +153,9 @@ un test qu'il écrit lui-même sur sa propre croyance, et ce test reste vert quo
    aucune ligne de spec. Une spec ne repose sur **aucune supposition**. Spécifier une supposition
    ne la blanchit pas.
 3. **Ne jamais combler un trou de spec par déduction.** Un trou est une décision de l'admin.
-   Elle se pose en question courte, puis s'écrit dans la spec avant d'être codée. Les trous
-   découverts en route se listent d'abord, et on les pose toutes. Trois ou moins se posent **une
-   par une**. Au-delà, elles partent ensemble dans un questionnaire, décrit dans
+   Elle se pose, puis s'écrit dans la spec avant d'être codée. Les trous découverts en route se
+   listent d'abord, et on les pose toutes. Une seule se pose en question courte. Une série part
+   dans un questionnaire, au seuil que fixe la section « Deux questions ou plus à poser » de
    [`docs/ton-des-echanges.md`](docs/ton-des-echanges.md). Jamais en vrac dans une réponse.
 4. **Ne jamais coder un changement graphique sans maquette validée.** Tout ce qui se voit se
    montre d'abord et s'approuve avant le code. La maquette montre des cas réalistes et
@@ -200,7 +200,7 @@ méthode, que rien ne mécanise, sont ici.
   *Incident fondateur.* Une heuristique lisait le type d'un objet dans le premier mot d'un titre.
   Les deux prompts de rédaction demandaient l'inverse, la marque d'abord.
 - **F5, la passe parcours après chaque lot visible.** Fusionner un lot visible déclenche l'angle
-  parcours de l'audit, à la main. On n'attend pas sa cadence.
+  parcours de l'audit, à la main ou par `/passe-parcours`. On n'attend pas sa cadence.
   *Incident fondateur.* Un lot fusionné un jour, testé sur le terrain le lendemain soir. L'angle
   existait, et n'a pas tourné entre les deux.
 
