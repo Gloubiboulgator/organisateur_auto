@@ -38,10 +38,67 @@ Il se recopie tel quel, suivi de la phrase, en gras.
 
 **« Lakitu te remet sur la route ! »**
 
-## Le sprite de départ, quand on prend A sur une route 🚩
+## La suite, dans l'ordre
 
-Il ouvre le tour qui suit le choix, suivi de la phrase, en gras. Deux conditions le déclenchent, et
-[`../SKILL.md`](../SKILL.md) les possède. Il ne sort pas souvent, c'est voulu.
+Quatre départs après le sprite, chacun en une ligne suivie de son bloc, puis la ligne de choix.
+
+1. 🟠 **A · boucler la session**, puis l'arbre.
+2. 🏁 **B · réordonner la roadmap**, puis la grille de départ.
+3. 🐞 **C · réparer les bugs**, puis les cartes des bugs.
+4. 🌈 **D · attaquer l'étape 1**, et sa ligne nomme la route. Quand B change la tête, elle
+   nomme celle avec B, puis celle sans B.
+
+Un trait horizontal sépare les départs de la ligne de choix, écrite en italique. *Combine-les
+dans l'ordre, par exemple « A+B » ou « tout ». Ou dis « détaille C ».*
+
+**Rien ne s'écrit sous un bloc.** Ni commentaire, ni rappel de ce qu'il montre.
+
+## L'arbre
+
+Un bloc de code. La colonne des numéros, la pastille, le dessin, puis l'origine en bout de
+ligne. Une ligne vide sépare les grandes branches.
+
+```
+    🟢 Ajouter le rappel la veille du match            👤 🚩
+    🟢 ├─ Écrire l'envoi de la notification            🤖 🚩
+ ①  🟠 │  └─ Tester l'envoi sur un vrai téléphone      🤖
+
+    🟢 ├─ Revue avant fusion                           🤖
+ ②  🟠 │  └─ Comprendre pourquoi un commit a été refusé 🤖
+
+ ③  🟠 └─ Résoudre le conflit avec la branche du club  🤖
+
+    🟢 fait · 3    🟠 en plan · 3
+    👤 toi · 1    🤖 l'agent · 5    🚩 avance le produit · 2
+```
+
+## La grille de départ
+
+Le podium en médailles, puis les rangs en chiffres. Un nom court de trois ou quatre mots, en
+gras, sert à l'affichage seul. La flèche donne l'ancienne place et la nouvelle.
+
+🥇 **Rappel la veille du match** · ▲ 2e ➜ 1er.
+💨 ~~Places libres par match~~ · fusionné dans **Places restantes sur la carte**, il dit la même
+chose.
+➖ *les 5 autres suivent, dans leur ordre actuel*.
+
+**Seuls les items qui bougent s'écrivent.** Ceux qui gardent leur ordre relatif tiennent dans la
+ligne ➖. Rien ne bouge, la ligne B dit « la roadmap est déjà dans l'ordre », et la grille se
+réduit à la ligne ➖.
+
+## Les cartes des bugs
+
+Une citation par bug. Le titre en gras après 🐞, puis une phrase sur ce que vit l'utilisateur,
+puis la trace en italique.
+
+> 🐞 **Deux fois la même voiture**
+> Un joueur ne sait pas dans laquelle monter. *Vu par toi hier.*
+
+## Le sprite de départ, quand D part sur une route 🚩
+
+Il ouvre la partie de D, avant toute autre ligne de D. Dans un combo, il sort donc au moment où
+D commence, après les départs qui le précèdent. Le sprite de Lakitu est sur fond bleu, celui-ci
+sur fond blanc. Les deux ne se suivent jamais dans un même tour.
 
 ```
 ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬛⬛⬛⬛⬛⬛⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜
@@ -75,214 +132,104 @@ Il ouvre le tour qui suit le choix, suivi de la phrase, en gras. Deux conditions
 
 **« Here we go ! »**
 
-Il est sur fond blanc, quand celui de Lakitu est sur fond bleu. Les deux ne se suivent jamais dans
-un même bloc, l'un ferme un tour et l'autre ouvre le suivant.
-
-## La suite, dans l'ordre
-
-Quatre blocs après le sprite, jamais dans un autre ordre.
-
-1. La route, précédée d'un seul arc-en-ciel.
-2. Le premier pas.
-3. Ce qui attend, les quatre rangs.
-4. Par où on part, les quatre lettres puis la ligne d'échappement.
-
-**Sur une session entamée, l'arbre s'ajoute en tête**, entre le sprite et la route. Il ne concerne
-que la session, jamais le produit.
-
-**La route passe avant tout constat**, l'arbre excepté. C'est la seule chose qu'on lit à coup sûr.
-
-**Sa ligne est nue.** Un arc-en-ciel, le mot LA ROUTE, un tiret, la route. Pas d'émoji de rang,
-pas de paragraphe d'explication en dessous. Ce qu'elle débloque se lit dans le rang juste sous
-elle.
-
-**Les quatre rangs s'écrivent toujours tous les quatre.** Le rang d'où sort la route vient en
-premier, les trois autres suivent dans l'ordre de gravité. Un rang sans rien porte « rien de
-connu », et cette mention justifie que la route soit plus bas.
-
 ## Les exemples, et ce qu'ils ne sont pas
 
-Les quatre cas qui suivent montrent une **forme**, sur un projet inventé. Leurs routes, leurs
-défauts et leurs chiffres ne décrivent aucun dépôt réel, et ne se recopient jamais dans un
-rapport.
+Les cas qui suivent montrent une **forme**, sur un projet inventé. Leurs tâches, leurs bugs et
+leurs chiffres ne décrivent aucun dépôt réel, et ne se recopient jamais dans un rapport.
 
 Un exemple bâti sur l'état vrai d'un projet devient faux dès que ce projet avance. Ce fichier est
 posé dans tous les projets équipés, et il leur enseignerait alors une roadmap périmée.
 
 ## Le cas courant, en session entamée
 
-Les deux premiers rangs sont vides, la route tombe au produit, et l'arbre ouvre le rapport.
+Sous le sprite et sa phrase.
+
+🟠 **A · boucler la session** : 4 tâches en plan. Je les finis sans m'arrêter, et tes questions
+arrivent à la fin.
 
 ```
- ✔ Regarder le carnet partagé                   👤
+    🟢 Ajouter le rappel la veille du match            👤 🚩
+    🟢 ├─ Écrire l'envoi de la notification            🤖 🚩
+ ①  🟠 │  └─ Tester l'envoi sur un vrai téléphone      🤖
 
- ✔ ├─ Constater ses trois classeurs vides       🤖
- ○ │  └─ Chercher qui les a vidés               🤖
-         reste : demander à l'admin s'il les a purgés
+    🟢 ├─ Revue avant fusion                           🤖
+    🟢 │  └─ Corriger les deux constats de la revue    🤖
+ ②  🟠 │     └─ Comprendre pourquoi un commit a été refusé  🤖
 
- ✔ ├─ Demander l'état des branches              👤
- ✔ │  └─ Recenser les branches fusionnées       🤖
+ ③  🟠 └─ Résoudre le conflit avec la branche du club  🤖
 
- ✔ └─ Reprendre la spec de la fiche imprimable  👤 🚩
- ○    ├─ Lister les questions bloquantes        🤖 🚩
-         reste : confirmer qu'il n'en manque pas une troisième
- ✔    └─ Revue de code, 3 constats              🔗
+    🟢 Regarder pourquoi un joueur voit deux voitures  👤
+ ④  🟠 └─ Retrouver le trajet en double dans la base   🤖
 
- ✔ fait · 6    ○ en plan · 2
- 👤 toi · 3    🤖 l'agent · 4    🔗 le harnais · 1    🚩 avance le produit · 2
+    🟢 fait · 5    🟠 en plan · 4
+    👤 toi · 2    🤖 l'agent · 7    🚩 avance le produit · 2
 ```
 
-**🌈 LA ROUTE — écrire la spec de la fiche imprimable**
+🏁 **B · réordonner la roadmap** : 1 item passe en tête, 1 doublon sort.
 
-**Le premier pas** — trancher le format du papier : A4 ou fiche bristol.
+🥇 **Rappel la veille du match** · ▲ 2e ➜ 1er.
+💨 ~~Places libres par match~~ · fusionné dans **Places restantes sur la carte**, il dit la même
+chose.
+➖ *les 5 autres suivent, dans leur ordre actuel*.
 
-**Ce qui attend**
+🐞 **C · réparer les bugs** : je les corrige, puis j'en cherche d'autres, sans m'arrêter. Tes
+questions arrivent à la fin.
 
-- 🚩 **Le produit** — la spec de la fiche imprimable, quatre items l'attendent · deux questions
-  la bloquent, le format du papier d'abord
-- 🛑 **Bloquant utilisateur** — rien de connu
-- ⚠️ **Stabilité** — rien de connu · le carnet partagé est vide, rien à y lire
-- 🧹 **Le reste** — quatre branches git fusionnées traînent sur le serveur
+> 🐞 **Deux fois la même voiture**
+> Un joueur ne sait pas dans laquelle monter. *Vu par toi hier.*
 
-**Par où on part**
+> 🐞 **La carte est lente**
+> Elle met dix secondes à s'afficher. *Vu dans les journaux du serveur.*
 
-**A** · **la route** — réaligner la roadmap, puis le premier pas.
+🌈 **D · attaquer l'étape 1** : finir le rappel la veille du match. Sans B, les places
+restantes sur la carte.
 
-**B** · **réparer** — aucun bug actif, je creuse pour en trouver.
+---
 
-**C** · **nettoyer** — branches mortes, bugs jamais remontés, specs décalées.
+*Combine-les dans l'ordre, par exemple « A+B » ou « tout ». Ou dis « détaille C ».*
 
-**D** · **réordonner et faire un grand pas** — la roadmap réalignée, puis grand pas prend les rangs.
+## Le cas de la session neuve, sans bug ni cible
 
-*Dis « détaille B », ou nomme autre chose.*
+Rien n'est en plan, la roadmap est en ordre, aucun bug n'est connu. Les quatre lignes sortent
+quand même.
 
-## Le cas qui décide, avec des défauts
+🟠 **A · boucler la session** : rien en plan.
 
-La route sort du rang 🛑, et le produit attend. Sur une session neuve, donc sans arbre.
+🏁 **B · réordonner la roadmap** : la roadmap est déjà dans l'ordre.
 
-**🌈 LA ROUTE — rendre ses quantités à l'import de recette**
+➖ *les 5 items gardent leur ordre*.
 
-**Le premier pas** — importer trois recettes du même site, coller ce que la base a gardé.
+🐞 **C · réparer les bugs** : aucun connu, j'en cherche.
 
-**Ce qui attend**
-
-- 🛑 **Bloquant utilisateur** — l'import d'une recette perd les quantités, vu par l'admin le 3
-- ⚠️ **Stabilité** — la liste de courses double les articles au retour · une recette sur dix
-  perd son temps de cuisson
-- 🚩 **Le produit** — la spec de la fiche imprimable, quatre items l'attendent · deux questions
-  la bloquent
-- 🧹 **Le reste** — quatre branches git fusionnées traînent sur le serveur
-
-**Par où on part**
-
-**A** · **la route** — réaligner la roadmap, puis le premier pas.
-
-**B** · **réparer** — trois défauts aux deux premiers rangs, j'attaque par gravité décroissante.
-
-**C** · **nettoyer** — branches mortes, bugs jamais remontés, specs décalées.
-
-**D** · **réordonner et faire un grand pas** — la roadmap réalignée, puis grand pas prend les rangs.
-
-*Dis « détaille B », ou nomme autre chose.*
-
-**A et B se recouvrent ici, et c'est voulu.** A prend la seule première ligne du rang, B prend le
-rang entier jusqu'au solde.
+🌈 **D · attaquer l'étape 1** : la fiche imprimable.
 
 ## Le cas de la cible introuvable
 
-L'argument nomme un point qu'aucun écrit ne porte. Le rapport reste entier, sprite et rangs
-compris. Ni route ni premier pas n'en sortent.
+`/lakitu l'audit de nuit`, que rien n'écrit. A, B et C ne changent pas. D le dit, et ne vise
+rien d'autre.
 
-**🌈 LA ROUTE — aucune, la cible « l'audit de nuit » n'est portée par aucun écrit**
+🌈 **D · attaquer l'étape 1** : aucune, « l'audit de nuit » n'est écrit nulle part.
 
-La ligne dit pourquoi il n'y a pas de route, elle n'en rend pas une. Le premier pas saute avec
-elle, et rien ne le remplace.
+## Les pièges de mise en forme
 
-*(les quatre rangs, comme d'habitude)*
+**Les quatre lettres sortent à chaque rapport.** Un menu qui rétrécit ne s'apprend pas, et une
+lettre absente laisse croire que l'agent n'a pas regardé.
 
-**Par où on part**
+**Chaque ligne de départ tient en une ou deux phrases.** Le détail est dans son bloc.
 
-**A** · **la route par défaut** — je la rends par rang de gravité, avec son premier pas.
+**La grille n'écrit que ce qui bouge.** Treize titres longs, chacun justifié, forment un mur que
+personne ne lit. Le nom court sert à l'affichage, le texte de la roadmap ne change pas.
 
-**B** · **réparer** — aucun bug actif, je creuse pour en trouver.
+**Une carte de bug parle de l'utilisateur.** Pas d'un fichier, pas d'un rang. Un bug se dit par
+ce qu'il fait vivre, avec sa trace.
 
-**C** · **nettoyer** — branches mortes, bugs jamais remontés, specs décalées.
+**L'arbre n'a pas de ligne `reste :`.** Le libellé de la tâche 🟠 dit déjà le geste, et le
+numéro à gauche la désigne.
 
-**D** · **réordonner et faire un grand pas** — la route par défaut réalignée, puis grand pas.
+**Les numéros sont à gauche, devant la pastille.** En bout de ligne, on ne les voit pas.
 
-*Nomme une autre cible, ou dis « détaille A ».*
+**Les comptes gardent leurs émojis en légende.** « 🟢 fait · 5 » se lit d'un coup d'œil. Une
+phrase sans émoji ne se lit plus.
 
-Une cible **trouvée**, elle, se rend comme n'importe quelle route, et A reprend son sens normal.
-Sa ligne D la nomme alors, « la roadmap réalignée, puis grand pas sur cette cible ».
-
-## Le cas des trois rangs vides
-
-Rien ne bloque, rien ne menace, et aucun item de produit n'est écrit. A n'a pas de route à porter,
-mais il ne disparaît pas.
-
-**🌈 LA ROUTE — aucune, et en déduire une serait la faire suivre**
-
-*(les quatre rangs, dont trois portent « rien de connu »)*
-
-**Par où on part**
-
-**A** · **rien à proposer** — aucun défaut connu, aucun item de produit écrit.
-
-**B** · **vérifier que c'est vrai** — je rouvre les sources muettes, je relis les issues et le
-dépôt.
-
-**C** · **nettoyer** — branches mortes, bugs jamais remontés, specs décalées.
-
-**D** · **réordonner et faire un grand pas** — un seul rang à lui passer, le nettoyage.
-
-*Ou nomme autre chose.*
-
-## Les quinze pièges de mise en forme
-
-**L'arbre ouvre, la route suit, l'inventaire après.** La dernière heure, puis la prochaine, puis
-seulement le constat.
-
-**La route est nue.** Un paragraphe sous elle repousse le premier pas d'un écran. Il répète en
-plus ce que son rang dit quatre lignes plus bas.
-
-**Les quatre lettres ne changent jamais de nombre.** A, B, C et D sortent à chaque rapport, même
-sans route à porter. Un menu qui rétrécit ne s'apprend pas.
-
-**Chaque départ tient sur une ligne.** Deux lignes par lettre, et le bloc redevient le pavé qu'on
-referme sans choisir.
-
-**Un rang vide s'écrit, il ne se saute pas.** « Rien de connu » dit que l'agent a regardé. Un rang
-absent laisse croire qu'il a oublié.
-
-**« Ce qui attend » ouvre par le rang de la route.** Sinon la ligne qui justifie la décision tombe
-en troisième position. Elle passe alors sous deux « rien de connu ».
-
-**Aucune source vide ne se mentionne.** « Aucune issue ouverte » ou « backlog vide » sont du
-bruit. Un marqueur de l'arbre à zéro l'est aussi.
-
-**Une source illisible se nomme, dans son rang.** Par exemple « issues non lues, `gh`
-indisponible ». Sans elle, un rang muet se lit « rien à faire », ce qui est le contraire.
-
-**Tout terme maison porte sa glose, à sa première apparition.** Une dizaine de mots, en incise.
-Le lecteur revient après une pause, et c'est ce qu'il a oublié en premier.
-
-**L'arbre porte deux colonnes, et pas une de plus.** L'état à gauche, devant le dessin. Les
-marqueurs à droite, alignés en bout de ligne et jamais dans le texte. Ni destination, ni durée,
-ni horodatage ne s'y ajoutent.
-
-**La ligne d'état écrit ses deux comptes**, `○ en plan · 0` compris. C'est le « rien de connu »
-des rangs, et il dit que l'agent a regardé. La ligne des marqueurs, elle, tait ses zéros.
-
-**La ligne `reste :` n'est pas une branche.** Elle s'indente sous le nom de la sienne, sans état,
-sans trait de filiation et sans marqueur. Un `└─ reste : ...` ajouterait au compte une tâche
-qui n'a jamais eu lieu.
-
-**Chaque branche ouvre par une majuscule.** Une ligne vide sépare les grandes. Vingt lignes
-collées en minuscules se lisent comme un pavé, jamais comme une liste de gestes.
-
-**Aucune ligne de l'arbre n'est nue.** Toute branche porte son état à gauche et l'un des quatre
-marqueurs d'origine à droite. Une ligne sans rien serait une branche dont on a perdu la
-provenance. La ligne `reste :` est la seule exception, et elle n'est pas une branche.
-
-**L'indentation dit la filiation, pas la chronologie.** Deux branches soeurs se lisent de haut
-en bas. Rien ne promet qu'elles se sont suivies dans le temps.
+**Tout terme maison porte sa glose, à sa première apparition.** Le lecteur revient après une
+pause, et c'est ce qu'il a oublié en premier.

@@ -41,7 +41,7 @@ peut pas diverger en silence.
 | Information | Propriétaire | Les autres |
 |---|---|---|
 | la vision et le pitch | `README.md`, la vitrine | en partagent l'essence par un bloc synchronisé |
-| le point d'entrée et la carte des specs | le hub du projet | tous les docs y renvoient |
+| le point d'entrée et la carte des specs | le hub du projet, le doc que `README.md` désigne pour la vue d'ensemble | tous les docs y renvoient |
 | les règles de doc | ce fichier | le fichier d'instructions y renvoie |
 | la forme de ce qui s'écrit | [`etalons-de-redaction.md`](etalons-de-redaction.md) | ce fichier y renvoie |
 | le comportement de l'agent | `CLAUDE.md` | renvoie ici pour les règles de doc |
@@ -51,6 +51,10 @@ peut pas diverger en silence.
 | ce qui est livré, et quand | `CHANGELOG.md` | les autres lient |
 | les croyances sur le monde extérieur | [`observations-terrain.md`](observations-terrain.md) | le code porte l'étiquette |
 | la définition brève d'un terme | le glossaire | les fiches techniques l'expliquent |
+| les mots du produit, leur sens bref et leurs liens | `docs/comprendre/les-mots-du-produit.md` | le glossaire garde les termes techniques |
+| montrer le produit à l'admin qui ne comprend pas | [`montrer-le-produit.md`](montrer-le-produit.md) | `.claude/rules/` en porte la copie |
+| mener un chantier de dix agents ou plus | [`chantiers-a-plusieurs-agents.md`](chantiers-a-plusieurs-agents.md) | `CLAUDE.md` y renvoie |
+| voir le produit avant de le dire prêt | [`voir-avant-de-livrer.md`](voir-avant-de-livrer.md) | `.claude/rules/` en porte la copie |
 | ce qui protège le projet | [`garde-fous.md`](garde-fous.md) | rien ne le recopie |
 | ce que le projet apprend à qui le découvre | le guide HTML, rédigé sous `guide/` | ses faits sont lus dans le code |
 
@@ -73,6 +77,25 @@ découpage.
 
 On n'invente **jamais** une catégorie pour caser un orphelin. S'il n'a pas de lecteur, il
 n'existe pas.
+
+## Les mots du produit et leur schéma
+
+Le glossaire donne le sens bref des termes techniques. Les mots du produit, ceux que
+l'utilisateur emploie en s'en servant, vivent à part. Un schéma en boîtes et en flèches y dessine
+leurs liens, ce qu'une liste ne montre pas.
+
+<!-- sync:mots-du-produit -->
+**Le schéma des mots du produit se tient à jour.** Il vit dans
+`docs/comprendre/les-mots-du-produit.md`. Le commit qui ajoute un mot du produit l'inscrit dans le
+schéma et sa liste. Un mot retiré, ou un lien qui change, s'y reporte dans le même commit.
+
+**Un mot du produit nomme une chose que l'utilisateur voit ou manipule.** Un terme technique, lui,
+reste au glossaire.
+<!-- /sync:mots-du-produit -->
+
+Le premier schéma est né chez un projet équipé, à la demande de l'admin du 2026-10-04. Dans ses
+mots, « Ce schéma sera conservé dans le projet et mis à jour à chaque fois que nécessaire ». Le
+2026-10-27, il l'a étendu à tous ses projets.
 
 ## Le guide HTML et sa relecture
 
@@ -118,7 +141,7 @@ rougit.
 | # | Garantit que… |
 |---|---|
 | 1 | tout lien interne pointe vers un fichier qui existe |
-| 2 | aucun prénom n'apparaît, nulle part |
+| 2 | aucun prénom de la liste interdite n'apparaît, nulle part |
 | 3 | les blocs synchronisés sont identiques partout |
 | 4 | le journal des livraisons est daté et trié du plus récent au plus ancien |
 | 5 | toute branche citée dans la doc existe, ou est marquée comme passée |

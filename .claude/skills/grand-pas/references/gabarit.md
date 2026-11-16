@@ -32,10 +32,6 @@ durée du lien, et ce qu'on voit quand le lien est mort.
 
 *Ou dis ce que tu veux, par exemple « entre A et B », ou une cible.*
 
-**Venu du départ D, le menu ouvre par un rappel.** Une ligne suffit, « ces lettres sont celles
-du pas, pas celles du rapport ». Les deux menus portent A, B et C pour des choses différentes.
-Répondre B d'habitude lancerait le pas long au lieu de réparer.
-
 **Aucun compte de décisions.** Un run ne sait pas combien de trous il rencontrera avant d'y
 être. Un chiffre donnerait du crédit à une devinette. B nomme les décisions, il ne les compte
 pas.
@@ -79,8 +75,7 @@ vaudrait fin prévue.
 **Un rang 🛑 ou ⚠️ hors de l'argument se nomme juste sous le menu**, en une ligne comme
 ci-dessus. Le lot ne le porte pas, et l'admin doit le voir avant de choisir.
 
-**Les deux lignes visent le bout de l'argument.** Aucune ne propose un premier pas, sinon le
-menu rendrait ce que lakitu rend déjà.
+**Les deux lignes visent le bout de l'argument.** Aucune ne propose un premier pas.
 
 **Pas de troisième ligne.** Le C du menu ordinaire vide les rangs, ce qui est exactement ne
 rien viser en particulier.
@@ -90,9 +85,6 @@ point peut être proche. Promettre le bout sans trancher le structurant serait m
 
 **Un argument sans écrit le dit en ligne de tête**, par exemple « rien d'écrit sur ce point ».
 Les deux plans sortent quand même, et ils n'inventent aucune spec.
-
-**Venu du départ D, ce menu ouvre par le même rappel**, celui de la section précédente. Les
-lettres sont celles du pas, pas celles du rapport.
 
 **Cet exemple est inventé lui aussi**, et il reprend le projet du menu ordinaire.
 
@@ -160,7 +152,8 @@ vides, comme le dit le dernier piège.
 2. Les décisions prises, la table de la note recopiée telle quelle.
 3. Ce qui a été rangé, et où.
 4. Ce qui a été abandonné, avec l'état laissé.
-5. La livraison. La branche, le verdict de la revue, et l'état de la demande de fusion.
+5. La livraison. La branche, le verdict des contrôles et des tests, et l'état de la demande de
+   fusion.
 
 **🥾 LE PAS — atteint, le partage du carnet, invitation comprise**
 
@@ -180,8 +173,8 @@ vides, comme le dit le dernier piège.
 **Livraison**
 
 - branche `le-partage-du-carnet`, poussée
-- revue de code passée deux fois, trois constats corrigés, la dernière est propre
-- demande de fusion prête, la fusion est à toi
+- contrôles et tests verts
+- demande de fusion prête, la revue et la fusion passent par `/ramasser-pr`
 
 **Un run sous argument le nomme dans sa première ligne.** L'admin y relit ce qu'il a demandé,
 pas seulement ce qui a été fait. « 🥾 LE PAS — partager le carnet avec un proche, atteint,
@@ -193,26 +186,23 @@ invitation comprise ».
 **Un bord touché se rend comme un pas atteint.** La première ligne change, le reste non.
 « 🥾 LE PAS — arrêté au choix du format d'invitation, décision structurante en portée A ».
 
-**Une demande restée en brouillon se rend telle quelle.** Deux passes de revue qui ne
-suffisent pas ferment le run sans « prête ». Un projet sans `/code-review` aussi. Le bloc
-« Livraison » le dit, et les constats non corrigés vivent dans « Abandonné ».
+**Une demande restée en brouillon se rend telle quelle.** Un rouge qui résiste à deux chemins
+ferme le run sans « prête ». Le bloc « Livraison » le dit, et le rouge vit dans « Abandonné ».
 
 - branche `le-partage-du-carnet`, poussée
-- revue de code passée deux fois, deux constats corrigés, le troisième résiste
-- demande de fusion **en brouillon**, le constat qui reste est en abandon
+- un test reste rouge, le lien d'invitation expire un jour trop tôt
+- demande de fusion **en brouillon**, le test rouge est en abandon
 
 **Le brouillon n'est pas un échec à cacher.** Il dit à l'admin où ça coince. Une demande prête
-que la revue n'a pas nettoyée lui coûte plus cher.
+sur un rouge lui coûte plus cher.
 
 ## Les pièges de mise en forme
 
 **La phrase d'ouverture n'attend rien.** Elle sort avant la première lecture, sinon elle
 raconte une réflexion déjà faite.
 
-**Elle ouvre ce que grand pas rend, pas le tour entier.** Venu du départ D, le rapport de
-lakitu précède donc légitimement. Ce qui est interdit, c'est qu'une lecture ou un constat de
-grand pas sorte avant sa phrase. Le réalignement de la roadmap, lui, est son premier point de
-run, et il sort après.
+**Elle ouvre ce que grand pas rend.** Ce qui est interdit, c'est qu'une lecture ou un constat
+de grand pas sorte avant sa phrase.
 
 **Le menu ne rétrécit jamais de lui-même.** Trois lettres sans argument, même quand le relevé
 est vide. A devient alors « rien à avancer », et B et C disent ce qu'ils iraient chercher.

@@ -8,8 +8,8 @@ description: >
   avancer. Le menu rend alors deux plans ambitieux pour elle, A et B, et pas de C. Un texte
   libre remplace la lettre. Chaque trou se tranche et se consigne dans une note de décision.
   Chaque anomalie trouvée en route se range dans la roadmap ou le backlog. Livre une demande de
-  fusion passée en revue et prête. S'invoque UNIQUEMENT sur commande explicite `/grand-pas`,
-  avec ou sans argument, ou par le départ D de `/lakitu`. Ne se déclenche jamais tout seul.
+  fusion prête, à relire. S'invoque UNIQUEMENT sur commande explicite `/grand-pas`,
+  avec ou sans argument. Ne se déclenche jamais tout seul.
 ---
 
 # Grand pas
@@ -31,9 +31,8 @@ note de décision, une demande de fusion prête, et une roadmap qui porte ce qui
 
 ## Quand il s'exécute
 
-Sur commande explicite seule, avec ou sans argument. Ou par le départ D de
-[`../lakitu/SKILL.md`](../lakitu/SKILL.md), qui lui passe ses quatre rangs. Le réalignement de
-la roadmap est alors son premier point de run, jamais avant. Lakitu possède cette règle.
+Sur commande explicite seule, avec ou sans argument. Lakitu ne le lance plus. Qui veut un grand
+pas après un rapport lakitu appelle `/grand-pas`, et le relevé se refait.
 
 **Un argument change le menu et le lot du run.** L'étape 2 possède le menu, l'étape 1 le
 relevé, l'étape 4 le lot.
@@ -46,7 +45,7 @@ aucune jusqu'au rendu final. Une question posée en cours de run est une faute, 
 
 ## Ce qu'il n'est pas
 
-**Ce n'est pas un lakitu qui écrit.** Lakitu tranche ce qu'on fait maintenant et rend un rapport.
+**Ce n'est pas un lakitu qui écrit.** Lakitu propose des départs et rend un rapport.
 Grand pas fait, jusqu'à la fin annoncée.
 
 **Ce n'est pas un contournement du harnais.** Un garde qui refuse est un bord du run, jamais
@@ -59,7 +58,8 @@ aucune question de son cru. Ce que le harnais demande, il le demande, et on ne f
 pour aller plus loin.
 
 **Ce n'est pas une fusion.** Il ne pousse jamais la branche principale, ne fusionne rien, ne
-supprime aucune branche. Il livre une demande de fusion prête, et la fusion reste à l'admin.
+supprime aucune branche. Il livre une demande de fusion prête. Sa revue et sa fusion restent au
+geste de l'admin, `/ramasser-pr`.
 
 ## Ce qu'il prend en charge à la place du `CLAUDE.md`
 
@@ -104,20 +104,9 @@ qui ignore une source ignorée avance sur une carte trouée sans le savoir.
 situer la chose demandée et ce qui s'y oppose. Il se cherche en deux temps, les fichiers de
 roadmap d'abord, le dossier `specs/` élargi ensuite. C'est le geste de lakitu pour une cible.
 
-**Introuvable, l'argument n'arrête rien.** Lakitu se tait faute d'écrit, parce qu'il rend une
-route à déduire. Grand pas fait, et ce qu'on lui demande de faire n'a pas toujours été écrit
+**Introuvable, l'argument n'arrête rien.** Lakitu se tait faute d'écrit, et son départ D
+ne vise alors rien. Grand pas fait, et ce qu'on lui demande de faire n'a pas toujours été écrit
 avant. Le relevé note « rien d'écrit », et le menu le reprend.
-
-**La reprise depuis lakitu saute cette étape, sauf ce qu'il ne lit pas.** Un rapport lakitu
-frais tient lieu de relevé, par ses quatre rangs. Frais veut dire sans commit ni changement de
-branche depuis le rapport. Refaire le reste coûterait une lecture pour rien.
-
-**Les specs se lisent quand même, le registre selon le cas.** La ligne A du menu dit jusqu'où
-vont les specs. Le registre se lit pour la portée C, donc sans argument. L'étape 4 y écrit dans
-tous les cas, sans avoir eu à le lire.
-
-**L'argument venu de D se situe quand même.** Lakitu l'a trouvé, sinon il ne l'aurait pas
-transmis. Son rapport ne dit pas où, et le menu doit le nommer.
 
 Une étape 1 sans les quatre rangs écrits est invalide et se refait.
 
@@ -196,9 +185,6 @@ dérive. B tranche ce qu'il faut pour aller au bout.
 **Un argument que le dépôt dément se dit en une ligne.** Un écrit s'y oppose, et les deux plans
 partent de ce constat. La chose déjà faite est l'autre cas. A y devient « rien à avancer », et
 B dit ce qu'il irait chercher au-delà.
-
-**La cible venue du départ D est un argument.** Lakitu la transmet avec ses rangs, et elle
-ouvre donc un menu à deux plans.
 
 **La fin prévue reste due pour chaque ligne.** La règle d'invalidité ci-dessus vaut pour deux
 lettres comme pour trois.
@@ -300,18 +286,14 @@ listes. Un run qui s'arrête avant sa fin le dit, avec la raison.
 Puis la livraison, dans cet ordre, et sans question.
 
 1. Pousser la branche, ouvrir la demande de fusion **en brouillon**.
-2. Lancer la revue de code, `/code-review`, sur la demande.
-3. Corriger ce qu'elle trouve, pousser, relancer la revue. **Une seule fois.**
-4. Passer la demande en **prête**, dès qu'une revue revient propre.
+2. Lancer les contrôles et les tests du projet sur la branche.
+3. Passer la demande en **prête**, dès qu'ils sont verts.
 
-Une première revue propre saute l'étape 3. Rien à corriger ne se relance pas.
-
-**Deux revues au total, donc une passe de correction entre les deux.** C'est la règle des deux
-chemins, portée sur la revue. Elle ferme un point après deux tentatives. Un constat qui survit à sa correction part en
+**Un rouge se traite comme un point du run**, deux chemins au plus. S'il résiste, il part en
 abandon, avec son état, et la demande **reste en brouillon**.
 
-Le compte se lit sur les revues lancées, jamais sur les constats. Un run sans surveillance qui
-corrigerait jusqu'au propre tournerait jusqu'au matin sur ce qu'il ne sait pas fermer.
+**La revue n'est pas la sienne.** Le `CLAUDE.md` la veut sur une demande prête, jamais par la
+session qui l'a écrite. `/ramasser-pr` la fait, avec la fusion.
 
 **La fusion est un geste de l'admin.** Le run s'arrête à « prête ». C'est la règle du `CLAUDE.md`
 sur les sessions en parallèle, et un run seul n'a aucune raison d'y déroger.
@@ -320,4 +302,5 @@ Le rendu final suit le gabarit de [`references/gabarit.md`](references/gabarit.m
 fin prévue et si elle est atteinte, puis les décisions prises. Ensuite ce qui a été rangé et
 où, ce qui a été abandonné, et l'état de la demande de fusion.
 
-Une étape 6 sans revue de code passée est invalide. La demande reste en brouillon.
+Une étape 6 qui passe en prête sur un contrôle ou un test rouge est invalide. La demande reste
+en brouillon.

@@ -127,20 +127,67 @@ for piste in "${NOYAU_METHODE:-}" "$enregistre" "$cible/../structure_projet" "$c
     source_depot="$piste"; break
 done
 actuelle=""
-# Le tampon posé est le dernier commit qui a TOUCHÉ noyau/. On le compare au même repère, sinon
-# tout commit hors noyau déclencherait un faux retard.
-[ -n "$source_depot" ] && actuelle=$(git -C "$source_depot" log -1 --format=%H -- noyau 2>/dev/null || echo "")
+# LE REPÈRE EST LA BRANCHE PRINCIPALE DU NOYAU, jamais la branche ouverte dans son dossier. Le
+# 2026-11-07, ce dossier était sur une branche de travail plus ancienne que le noyau posé. Le
+# contrôle criait au retard à chaque commit, et il ratait le vrai, quatre commits arrivés sur la
+# copie distante. La copie distante passe d'abord, puisque les fusions y arrivent. Elle n'est
+# fraîche que du dernier fetch, et ce contrôle n'en lance aucun, pour ne jamais dépendre du réseau.
+# Sans aucune branche principale, la branche ouverte reste le seul repère, et l'alerte le dit.
+# UNE BRANCHE PRINCIPALE LOCALE EN AVANCE L'EMPORTE. Une fusion locale pas encore poussée ne se
+# voit pas sur la copie distante, et le retard sur elle serait tu.
+reference=""
+ouverte=""
+if [ -n "$source_depot" ]; then
+    for ref in "$(git -C "$source_depot" symbolic-ref -q refs/remotes/origin/HEAD 2>/dev/null)" \
+               refs/remotes/origin/main refs/remotes/origin/master refs/heads/main refs/heads/master; do
+        [ -n "$ref" ] || continue
+        git -C "$source_depot" rev-parse -q --verify "$ref^{commit}" >/dev/null 2>&1 || continue
+        reference="$ref"; break
+    done
+    for locale in refs/heads/main refs/heads/master; do
+        [ -n "$reference" ] && [ "$reference" != "$locale" ] || continue
+        git -C "$source_depot" rev-parse -q --verify "$locale^{commit}" >/dev/null 2>&1 || continue
+        git -C "$source_depot" merge-base --is-ancestor "$reference" "$locale" 2>/dev/null || continue
+        reference="$locale"; break
+    done
+    # Le tampon posé est le dernier commit qui a TOUCHÉ noyau/. On le compare au même repère,
+    # sinon tout commit hors noyau déclencherait un faux retard.
+    actuelle=$(git -C "$source_depot" log -1 --format=%H "${reference:-HEAD}" -- noyau 2>/dev/null || echo "")
+    # L'installateur pose la branche ouverte. Si elle n'a pas le noyau du repère, le remède affiché
+    # ne lèverait pas l'alerte.
+    ouverte=$(git -C "$source_depot" log -1 --format=%H HEAD -- noyau 2>/dev/null || echo "")
+fi
 
-if [ -z "$actuelle" ] || [ "$pose" = "inconnue" ]; then
+# UNE POSE SANS VERSION NE SE COMPARE PAS. Vide, elle ferait lire « ..repère » comme
+# « HEAD..repère », et un retard nul ferait taire toute alerte.
+a_jour=""
+if [ -n "$actuelle" ] && { [ -z "$pose" ] || [ "$pose" = "inconnue" ]; }; then
+    echo "⚠️  RETARD NON VÉRIFIÉ — .noyau-empreintes ne note pas la version posée." >&2
+    echo "    La régénérer : bash <noyau>/installer.sh $cible" >&2
+elif [ -z "$actuelle" ]; then
     echo "⚠️  RETARD NON VÉRIFIÉ — le dépôt du noyau est introuvable." >&2
     echo "    Cherché, dans l'ordre : la variable NOYAU_METHODE, le chemin enregistré à la pose," >&2
     echo "    puis ../structure_projet et ../methodo à côté du projet." >&2
     echo "    Le bricolage, lui, a bien été vérifié ci-dessus." >&2
-elif [ "$pose" != "$actuelle" ]; then
+elif [ "$pose" = "$actuelle" ]; then
+    a_jour=1
+else
+    # Un noyau posé plus récent que le repère n'est pas en retard. Seuls comptent les commits du
+    # noyau que le repère a et que la pose n'a pas. Le même avertissement disait « 0 version
+    # d'écart » sur un projet en avance.
     retard=$(git -C "$source_depot" rev-list --count "$pose..$actuelle" -- noyau 2>/dev/null || echo "?")
-    echo "⚠️  RETARD — le projet porte le noyau ${pose:0:8}, le noyau est à ${actuelle:0:8}." >&2
-    echo "    $retard version(s) d'écart. Mettre à jour : bash <noyau>/installer.sh $cible" >&2
-    [ "$strict" = 1 ] && fail=1
+    if [ "$retard" = "0" ]; then
+        a_jour=1
+    else
+        echo "⚠️  RETARD — le projet porte le noyau ${pose:0:8}, le noyau est à ${actuelle:0:8}." >&2
+        echo "    $retard version(s) d'écart. Mettre à jour : bash <noyau>/installer.sh $cible" >&2
+        [ -n "$reference" ] || echo "    Repère : la branche ouverte du noyau, faute de branche principale." >&2
+        if [ -n "$reference" ] && [ "$ouverte" != "$actuelle" ]; then
+            echo "    Avant, ouvrir le dossier du noyau sur ${reference#refs/*/} à jour : l'installateur" >&2
+            echo "    pose sa branche ouverte, pas le repère." >&2
+        fi
+        [ "$strict" = 1 ] && fail=1
+    fi
 fi
 
 # ── 3) Le périmètre lui-même : une ligne retirée sortait un fichier du contrôle ────────────────
@@ -151,8 +198,9 @@ fi
 #
 # LA COMPARAISON N'A DE SENS QU'À VERSION ÉGALE. Un projet simplement EN RETARD porte moins
 # d'empreintes que le noyau courant, et l'accuser de bricolage serait un faux positif. On ne
-# compare donc la liste que si le projet est à jour.
-if [ -n "$source_depot" ] && [ -n "$actuelle" ] && [ "$pose" = "$actuelle" ]; then
+# compare donc la liste que si le projet est à jour. Elle se lit dans la pose, qui peut être plus
+# récente que le repère : un projet posé depuis une branche pas encore fusionnée est à jour.
+if [ -n "$source_depot" ] && [ -n "$a_jour" ]; then
     absentes=""
     # CE QUE GIT SUIT, ET RIEN D'AUTRE. Un « find » ramassait les artefacts ignorés, à
     # commencer par les __pycache__ que les outils du noyau créent dès qu'on les lance. Tout
@@ -171,7 +219,7 @@ if [ -n "$source_depot" ] && [ -n "$actuelle" ] && [ "$pose" = "$actuelle" ]; th
         rel="${rel#noyau/}"
         grep -qF "  $rel" "$empreintes" || absentes="$absentes\n  $rel"
     done < <(git -C "$source_depot" -c core.quotePath=false ls-tree -r -z --name-only \
-                 "$actuelle" -- noyau)
+                 "$pose" -- noyau)
     if [ -n "$absentes" ]; then
         echo "❌ HORS PÉRIMÈTRE — ces fichiers du noyau ont été sortis des empreintes :" >&2
         printf '%b\n' "$absentes" >&2

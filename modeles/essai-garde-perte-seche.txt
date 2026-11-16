@@ -7,12 +7,15 @@
 # Le croisillon ouvre un commentaire. Un « \n » vaut un retour à la ligne dans la commande,
 # ce qui permet d'écrire un heredoc sur une seule ligne de ce fichier.
 #
-# Trois marques sont remplacées au lancement par essai-garde-perte-seche.sh.
+# Six marques sont remplacées au lancement par essai-garde-perte-seche.sh.
 #   @RACINE@       la racine du dépôt d'essai
 #   @LIEN@         un lien posé sous /tmp qui vise une preuve du dépôt d'essai
 #   @PRINCIPALE@   le nom de la branche principale du dépôt d'essai
+#   @ARBRES@       le dossier des worktrees d'essai, hors du dépôt
+#   @ARBRE_TEMP@   un worktree d'essai posé sous /tmp
+#   @ARBRE_TEMP_ORPHELIN@   un worktree d'essai sous /tmp, au commit orphelin
 #
-# CAS_ATTENDUS 102
+# CAS_ATTENDUS 121
 #
 # LE COMPTE CI-DESSUS EST ÉPINGLÉ, et le script refuse de tourner s'il ne tombe pas juste.
 # Sans lui, retirer un cas ne fait rien rougir, et la couverture rétrécit en silence.
@@ -148,3 +151,46 @@ DOIT_PASSER|git checkout -B travail -
 DOIT_REFUSER|cd important\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\ncd .\nbash <<EOF\nrm -rf preuve.txt\nEOF
 # PWD vaut le dossier du garde, pas celui que la charge suit.
 DOIT_REFUSER|rm -rf $PWD/precieux
+
+# DEUX REFUS EN BLOC ASSOUPLIS — 2026-10-20
+# Une branche distante contenue dans la principale du distant ne perd rien, sous toutes ses formes.
+DOIT_PASSER|git push --delete origin fusionnee
+DOIT_PASSER|git push origin --delete fusionnee
+DOIT_PASSER|git push -d origin refs/heads/fusionnee
+# Une branche qui porte un commit à elle reste une perte.
+# motif: porte des commits
+DOIT_REFUSER|git push --delete origin travail
+DOIT_REFUSER|git push --delete origin fusionnee travail
+# motif: la branche principale du distant
+DOIT_REFUSER|git push --delete origin @PRINCIPALE@
+# La tête distante n'existe pas ici : le garde ne peut pas dire où vivent ses commits.
+# motif: inconnue ici
+DOIT_REFUSER|git push --delete origin inconnue
+# motif: n'existe pas
+DOIT_REFUSER|git push --delete origin absente
+# Une option que le garde ne connaît pas peut changer ce que la poussée retire.
+DOIT_REFUSER|git push --delete -o x origin fusionnee
+# motif: n'a pas su lire
+DOIT_REFUSER|git push --delete distant-absent fusionnee
+# Un worktree propre, qui ne garde qu'un artefact jetable, ne perd rien.
+DOIT_PASSER|git worktree remove --force @ARBRES@/propre
+# motif: jetterait 1 chemin(s)
+DOIT_REFUSER|git worktree remove --force @ARBRES@/sale
+DOIT_REFUSER|git worktree remove --force @ARBRES@/non-suivi
+# Un commit qu'aucune branche ne porte partirait avec le worktree.
+# motif: aucune branche
+DOIT_REFUSER|git worktree remove --force @ARBRES@/orphelin
+# Sous /tmp, tout est jetable, comme pour un `rm`. Celui-ci est sale exprès.
+DOIT_PASSER|git worktree remove --force @ARBRE_TEMP@
+# motif: jette un arbre de travail
+DOIT_REFUSER|git worktree remove --force @ARBRES@/propre @ARBRES@/sale
+# Sous /tmp, les fichiers sont jetables, pas les commits. Ceux-là vivent dans le dépôt.
+# motif: aucune branche
+DOIT_REFUSER|git worktree remove --force @ARBRE_TEMP_ORPHELIN@
+# Juste après une fusion faite sur le distant, sa principale est inconnue ici. Le refus le dit.
+# motif: un git fetch la rapporte
+DOIT_REFUSER|git push --delete avance fusionnee
+# La poussée écrit à l'adresse de poussée. « croise » lit un distant où fusionnee est fusionnée,
+# et pousse vers un autre, que le garde doit lire.
+# motif: un git fetch la rapporte
+DOIT_REFUSER|git push --delete croise fusionnee

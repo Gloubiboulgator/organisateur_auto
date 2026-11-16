@@ -101,6 +101,8 @@ chemin inattendu.
 | `scripts/garde-depot-deploye.sh` | un geste git de l'agent qui fait quitter sa branche au répertoire que servent les units systemd, ou qui déplace cette branche. La liste des gestes vit en tête du script | refuse l'appel d'outil |
 | `scripts/garde-options-sans-cas.sh` | un questionnaire publié ou envoyé à l'admin dont une option à choisir ne dit pas dans quel cas elle gagne | refuse l'appel d'outil |
 | `scripts/garde-questions-illisibles.sh` | un questionnaire publié ou envoyé à l'admin dont une question à choisir n'a pas de scène, ou dont un titre, un « quand » ou une scène porte un sigle, un fichier, du code ou un nom d'outil | refuse l'appel d'outil |
+| `scripts/garde-lecture-a-froid.sh` | un questionnaire publié ou envoyé à l'admin qu'aucune lecture à froid n'a lu depuis son dernier message et depuis sa dernière retouche, contre la règle « La lecture à froid avant de publier » | refuse l'appel d'outil |
+| `scripts/garde-revue-de-conception.sh` | un questionnaire à choix publié ou envoyé à l'admin qu'aucune revue de conception n'a jugé depuis son dernier message et depuis sa dernière retouche, contre la règle « La revue de conception avant la lecture à froid » | refuse l'appel d'outil |
 
 ### Le contrôle du noyau
 

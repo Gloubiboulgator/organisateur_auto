@@ -59,6 +59,11 @@ CAS="${CAS:-$ici/essai-garde-perte-seche.txt}"
 RACINE="${DOSSIER_ESSAI:-$HOME/.essai-garde-perte-seche}"
 DEPOT="$RACINE/build/depot"
 LIEN="${LIEN_ESSAI:-/tmp/lien-essai-garde-perte-seche}"
+# Les worktrees vivent HORS du dépôt. Rangés dedans, ils deviendraient du non suivi, que les cas
+# de `git clean` et de `rm` jugeraient aussi. Un seul vit sous /tmp, exprès.
+ARBRES="$RACINE/arbres"
+ARBRE_TEMP="${ARBRE_TEMP_ESSAI:-/tmp/arbre-essai-garde-perte-seche}"
+ARBRE_TEMP_ORPHELIN="$ARBRE_TEMP-orphelin"
 PRINCIPALE=principale
 # Posé à la racine du dossier d'essai, et exigé avant tout effacement. Voir nettoyer().
 MARQUE=".ceci-est-un-depot-d-essai-jetable"
@@ -77,6 +82,13 @@ done
 # jetable partout et le jeu devient muet. L'invariant était écrit en commentaire, et rien ne le
 # tenait : un HOME sous /tmp rendait trente-cinq écarts qui se lisaient comme des défauts.
 reel=$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$RACINE")
+# UN WORKTREE EST LE NÔTRE si son lien vise le dépôt d'essai, sous sa forme écrite ou liens
+# résolus. Git peut noter l'une ou l'autre, par exemple derrière un HOME qui passe par un lien.
+depot_reel=$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$DEPOT")
+est_notre_arbre() {
+  grep -qF "gitdir: $DEPOT/.git/worktrees/" "$1/.git" 2>/dev/null \
+    || grep -qF "gitdir: $depot_reel/.git/worktrees/" "$1/.git" 2>/dev/null
+}
 case "$reel/" in
   /tmp/*|/var/tmp/*|/dev/shm/*)
     echouer "le dépôt d'essai ne peut pas vivre sous une racine temporaire, $reel
@@ -94,6 +106,12 @@ nettoyer() {
   fi
   rm -rf "$RACINE"
   [ -L "$LIEN" ] && rm -f "$LIEN"
+  # UN WORKTREE SOUS /tmp NE S'EFFACE QUE S'IL EST LE NÔTRE. Son lien doit viser le dépôt
+  # d'essai. Un fichier `.git` seul ne suffit pas : tout vrai worktree en porte un, et le chemin
+  # peut venir de ARBRE_TEMP_ESSAI.
+  for arbre in "$ARBRE_TEMP" "$ARBRE_TEMP_ORPHELIN"; do
+    est_notre_arbre "$arbre" && rm -rf "$arbre"
+  done
   return 0
 }
 
@@ -153,6 +171,45 @@ monter() (
   # Un lien SOUS /tmp qui vise une preuve du dépôt. Le garde doit suivre le lien, pas lire son
   # préfixe : c'est le cas qui a mis cinq jours à être vu.
   ln -sfn "$DEPOT/important/preuve.txt" "$LIEN"
+  # UN DISTANT, pour `git push --delete`, assoupli le 2026-10-20. « fusionnee » est contenue dans
+  # la principale, « travail » porte un commit à elle. « inconnue » vit sur le distant seul, son
+  # commit n'existe pas ici.
+  git init -q --bare "$RACINE/distant.git"
+  git -C "$DEPOT" remote add origin "$RACINE/distant.git"
+  git -C "$DEPOT" branch -q fusionnee "$PRINCIPALE~1"
+  # Poussé par son adresse, pas par « origin » : aucune référence de suivi ne naît. Sinon les
+  # commits de « travail » passeraient pour rendus par un distant, et les cas de `-B` mentiraient.
+  git -C "$DEPOT" push -q "$RACINE/distant.git" "$PRINCIPALE" travail fusionnee
+  git --git-dir="$RACINE/distant.git" symbolic-ref HEAD "refs/heads/$PRINCIPALE"
+  arbre_vide=$(git --git-dir="$RACINE/distant.git" mktree </dev/null)
+  commit_distant=$(git --git-dir="$RACINE/distant.git" -c user.name=Essai -c user.email=essai@exemple.invalide \
+    commit-tree "$arbre_vide" -p "$PRINCIPALE" -m "commit du distant seul")
+  git --git-dir="$RACINE/distant.git" update-ref refs/heads/inconnue "$commit_distant"
+  # UN DISTANT EN AVANCE, comme juste après une fusion faite sur lui. Sa principale porte un
+  # commit qui n'existe pas ici. « croise » lit le premier distant, et pousse vers celui-ci.
+  git clone -q --bare "$RACINE/distant.git" "$RACINE/distant-avance.git"
+  commit_avance=$(git --git-dir="$RACINE/distant-avance.git" -c user.name=Essai -c user.email=essai@exemple.invalide \
+    commit-tree "$arbre_vide" -p "$PRINCIPALE" -m "fusion faite sur le distant")
+  git --git-dir="$RACINE/distant-avance.git" update-ref "refs/heads/$PRINCIPALE" "$commit_avance"
+  git -C "$DEPOT" remote add avance "$RACINE/distant-avance.git"
+  git -C "$DEPOT" remote add croise "$RACINE/distant.git"
+  git -C "$DEPOT" remote set-url --push croise "$RACINE/distant-avance.git"
+  # SIX WORKTREES, pour le retrait forcé d'un worktree. Un propre, avec un artefact jetable. Un
+  # sale, un avec du non suivi, un dont le commit ne tient sur aucune branche. Et deux sous /tmp.
+  # L'un est sale exprès, et passe quand même. L'autre porte un commit orphelin, qui se perdrait.
+  mkdir -p "$ARBRES"
+  for nom in propre sale non-suivi orphelin; do
+    git -C "$DEPOT" worktree add -q --detach "$ARBRES/$nom" "$PRINCIPALE"
+  done
+  git -C "$DEPOT" worktree add -q --detach "$ARBRE_TEMP" "$PRINCIPALE"
+  git -C "$DEPOT" worktree add -q --detach "$ARBRE_TEMP_ORPHELIN" "$PRINCIPALE"
+  mkdir -p "$ARBRES/propre/node_modules"
+  printf 'x\n' > "$ARBRES/propre/node_modules/x.js"
+  printf 'modif\n' >> "$ARBRES/sale/garde.txt"
+  printf 'neuf\n' > "$ARBRES/non-suivi/neuf.txt"
+  git -C "$ARBRES/orphelin" commit -q --allow-empty -m "commit qu'aucune branche ne porte"
+  printf 'modif\n' >> "$ARBRE_TEMP/garde.txt"
+  git -C "$ARBRE_TEMP_ORPHELIN" commit -q --allow-empty -m "commit orphelin sous /tmp"
 )
 
 # LE MONTAGE SE VÉRIFIE PIÈCE PAR PIÈCE. Un `monter` qui échoue à mi-chemin laissait jouer les
@@ -173,22 +230,59 @@ verifier_montage() {
   [ -f "$DEPOT/node_modules/x.js" ] || manque="$manque\n      un artefact régénérable"
   [ -f "$LIEN" ] || manque="$manque\n      le lien sous /tmp, qui doit viser une preuve"
   case "$DEPOT" in */build/*) ;; *) manque="$manque\n      un dossier « build » au-dessus du dépôt" ;; esac
+  for b in "$PRINCIPALE" travail fusionnee inconnue; do
+    git --git-dir="$RACINE/distant.git" rev-parse --verify --quiet "refs/heads/$b" >/dev/null \
+      || manque="$manque\n      la branche $b sur le distant"
+  done
+  git -C "$DEPOT" cat-file -e "$(git --git-dir="$RACINE/distant.git" rev-parse refs/heads/inconnue 2>/dev/null)" 2>/dev/null \
+    && manque="$manque\n      un commit du distant inconnu du dépôt"
+  [ -f "$ARBRES/propre/node_modules/x.js" ] || manque="$manque\n      le worktree propre et son artefact"
+  git -C "$ARBRES/sale" status --porcelain 2>/dev/null | grep -q '^ M' || manque="$manque\n      le worktree sale"
+  git -C "$ARBRES/non-suivi" status --porcelain 2>/dev/null | grep -q '^??' || manque="$manque\n      le worktree au non suivi"
+  [ -n "$(git -C "$ARBRES/orphelin" rev-list HEAD --not --branches --remotes 2>/dev/null)" ] \
+    || manque="$manque\n      le worktree au commit orphelin"
+  # Un `.git` étranger au même chemin ferait jouer les cas sur l'arbre d'un autre dépôt.
+  for arbre in "$ARBRE_TEMP" "$ARBRE_TEMP_ORPHELIN"; do
+    est_notre_arbre "$arbre" \
+      || manque="$manque\n      le worktree d'essai $arbre"
+  done
+  [ -n "$(git -C "$ARBRE_TEMP_ORPHELIN" rev-list HEAD --not --branches --remotes 2>/dev/null)" ] \
+    || manque="$manque\n      le worktree orphelin sous /tmp"
+  git -C "$DEPOT" cat-file -e "$(git --git-dir="$RACINE/distant-avance.git" rev-parse "refs/heads/$PRINCIPALE" 2>/dev/null)" 2>/dev/null \
+    && manque="$manque\n      un distant en avance sur le dépôt"
+  [ "$(git -C "$DEPOT" remote get-url --push croise 2>/dev/null)" = "$RACINE/distant-avance.git" ] \
+    || manque="$manque\n      un distant à l'adresse de poussée distincte"
   [ -z "$manque" ] || echouer "le montage est incomplet, rien n'a été joué. Il manque :$(printf "$manque")"
 }
 
 # ── LE JEU ───────────────────────────────────────────────────────────────────────────────────
 jouer() {
-  RACINE="$DEPOT" LIEN="$LIEN" PRINCIPALE="$PRINCIPALE" GARDE="$GARDE" python3 - "$CAS" <<'PY'
+  RACINE="$DEPOT" LIEN="$LIEN" PRINCIPALE="$PRINCIPALE" GARDE="$GARDE" ARBRES="$ARBRES" ARBRE_TEMP="$ARBRE_TEMP" ARBRE_TEMP_ORPHELIN="$ARBRE_TEMP_ORPHELIN" python3 - "$CAS" <<'PY'
 import json, os, re, subprocess, sys
 
 racine, lien = os.environ["RACINE"], os.environ["LIEN"]
 principale, garde = os.environ["PRINCIPALE"], os.environ["GARDE"]
+arbres, arbre_temp = os.environ["ARBRES"], os.environ["ARBRE_TEMP"]
+arbre_temp_orphelin = os.environ["ARBRE_TEMP_ORPHELIN"]
 
 # Le garde est lancé SOUS UN CHRONOMÈTRE, parce que sa pire panne est d'être tué. Le harnais lit
 # alors sa sortie vide comme « rien à signaler », et la commande part. Sans ce butoir, la classe
 # de panne que l'en-tête du garde appelle la plus grave ne se mesurait pas.
 BUTOIR = 30
 GROS = "1234567890" * 20000
+
+# LE GARDE JOUE EN FRANÇAIS quand la machine le parle. Il lisait une sortie de git en anglais,
+# et `git clean -fdx` passait sur une machine réglée en français. Jouer dans la langue de qui
+# lance l'essai ne mesurait ce défaut que chez lui. Mesuré le 2026-10-20.
+# Une machine sans la commande `locale` tombe dans la note, pas dans une trace Python.
+try:
+    langues = subprocess.run(["locale", "-a"], capture_output=True, text=True).stdout.split()
+except OSError:
+    langues = []
+francais = next((l for l in langues if l.lower().replace("-", "") == "fr_fr.utf8"), None)
+ENV_GARDE = {**os.environ, "LC_ALL": francais} if francais else dict(os.environ)
+if not francais:
+    print("  NOTE   aucune locale française sur cette machine, la langue de git n'est pas mesurée")
 
 attendus, cas, erreurs = None, [], []
 motif_suivant = None
@@ -226,12 +320,14 @@ ecarts = 0
 for n, attendu, commande, motif in cas:
     commande = (commande.replace("@RACINE@", racine).replace("@LIEN@", lien)
                         .replace("@PRINCIPALE@", principale).replace("@GROS@", GROS)
+                        .replace("@ARBRES@", arbres).replace("@ARBRE_TEMP_ORPHELIN@", arbre_temp_orphelin)
+                        .replace("@ARBRE_TEMP@", arbre_temp)
                         .replace("\\n", "\n"))
     charge = json.dumps({"tool_name": "Bash", "cwd": racine,
                          "tool_input": {"command": commande}})
     try:
         sortie = subprocess.run(["bash", garde], input=charge, capture_output=True,
-                                text=True, timeout=BUTOIR).stdout
+                                text=True, timeout=BUTOIR, env=ENV_GARDE).stdout
     except subprocess.TimeoutExpired:
         # Un garde tué rend une sortie vide. On le nomme, plutôt que de le lire comme un
         # laissez-passer : c'est la panne la plus grave, et la plus silencieuse.

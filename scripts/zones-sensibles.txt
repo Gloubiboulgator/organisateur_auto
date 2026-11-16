@@ -1,0 +1,8 @@
+# Les chemins de CE projet où une erreur coûte cher : serveur, déploiement, données.
+#
+# Une demande de fusion qui touche l'un d'eux passe ses deux premières revues au niveau `high`, et
+# ses trois revues même si elle ne porte que des données. La règle vit dans le tri des constats du
+# skill ramasser-pr.
+#
+# Un préfixe de chemin par ligne, relatif à la racine, par exemple « serveur/ ». Le croisillon
+# ouvre un commentaire. Vide, ce fichier ne change rien.

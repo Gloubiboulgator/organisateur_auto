@@ -1,0 +1,270 @@
+<title>{{titre}}</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+  /* Une page de registre : un bandeau d'en-tête, puis une section par étape du parcours. */
+  :root {
+    --fond: #f3f1ea; --papier: #ffffff; --encre: #1b2033; --doux: #5b6070;
+    --marine: #1d2b53; --bandeau: #fbefc4; --trait: #1b2033; --lien: #2a4aa8;
+    --titre: "Archivo Black", "Arial Black", system-ui, sans-serif;
+    --texte: "Source Serif 4", Georgia, serif;
+    --code: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --fond: #12151f; --papier: #1b2030; --encre: #e9e7df; --doux: #a3a8b8;
+    --marine: #8ea6e8; --bandeau: #3a3420; --trait: #c9c6bb; --lien: #9db4f2; color-scheme: dark } }
+  :root[data-theme="dark"] {
+    --fond: #12151f; --papier: #1b2030; --encre: #e9e7df; --doux: #a3a8b8;
+    --marine: #8ea6e8; --bandeau: #3a3420; --trait: #c9c6bb; --lien: #9db4f2; color-scheme: dark }
+  body { background: var(--fond); color: var(--encre); font: 17px/1.55 var(--texte);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px 64px; }
+  main { max-width: 1100px; margin: 0 auto; display: grid; gap: 28px; }
+  header { border: 3px solid var(--trait); background: var(--papier); display: grid; }
+  header .surtitre { font: 600 12px var(--code); letter-spacing: .18em; text-transform: uppercase;
+    background: var(--bandeau); padding: 8px 16px; border-bottom: 3px solid var(--trait); }
+  header .corps { padding: 18px 16px 20px; display: grid; gap: 10px; }
+  h1 { font: 30px/1.1 var(--titre); margin: 0; text-wrap: balance; color: var(--marine); }
+  .chapeau { margin: 0; max-width: 65ch; }
+  .meta { font: 13px var(--code); color: var(--doux); margin: 0; }
+  .section { background: var(--papier); border: 2px solid var(--trait); padding: 16px; display: grid; gap: 12px; min-width: 0; }
+  h2 { font: 20px/1.2 var(--titre); margin: 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; text-wrap: balance; }
+  h2 small { font: 13px var(--code); color: var(--doux); }
+  .ident { font: 600 13px var(--code); background: var(--marine); color: var(--papier); padding: 2px 7px; }
+  .schema { overflow-x: auto; border-top: 1px dashed var(--doux); padding-top: 12px; }
+  .schema pre { margin: 0; width: max-content; }
+  /* Le logigramme garde sa taille réelle. Rétréci à la largeur de la page, il était illisible. */
+  .schema svg { max-width: none !important; height: auto; }
+  .zoom { display: flex; gap: 6px; justify-content: flex-end; }
+  .zoom button { font: 600 13px var(--code); background: var(--papier); color: var(--encre);
+    border: 2px solid var(--trait); padding: 4px 10px; cursor: pointer; }
+  .zoom button:focus-visible { outline: 3px solid var(--lien); outline-offset: 2px; }
+  .tableau { overflow-x: auto; margin-top: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th, td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--doux); }
+  th { font: 600 12px var(--code); text-transform: uppercase; letter-spacing: .08em; }
+  td.num { font: 600 13px var(--code); font-variant-numeric: tabular-nums; }
+  td a { font: 13px var(--code); color: var(--lien); }
+  details > summary { cursor: pointer; font: 600 14px var(--code); color: var(--lien); }
+  summary:focus-visible, a:focus-visible { outline: 3px solid var(--lien); outline-offset: 2px; }
+  .ecrans { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 10px; }
+  .ecran { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; }
+  .ecran div { min-width: 0; }
+  .ecran p { margin: 2px 0; }
+  .ecran code { font: 12px var(--code); color: var(--doux); overflow-wrap: anywhere; }
+  .ecarts { background: var(--bandeau); border: 2px solid var(--trait); padding: 16px; }
+  .ecarts h2 { margin-bottom: 8px; }
+  .ecarts ul { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 6px; }
+  .ecarts h3 { font: 600 14px var(--code); margin: 14px 0 6px; }
+  .ecarts h3 small { color: var(--doux); }
+  .aide { margin: 0; color: var(--doux); font-size: 15px; }
+  .commandes { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: end; }
+  fieldset { border: 1px solid var(--doux); padding: 8px 12px; margin: 0; min-width: 0; }
+  legend, .choix { font: 600 12px var(--code); text-transform: uppercase; letter-spacing: .08em; }
+  .cases { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  .case { font: 13px var(--code); display: inline-flex; gap: 6px; align-items: center; }
+  .choix select { display: block; margin-top: 4px; font: 14px var(--code); max-width: 100%; }
+  #dessin g.node { cursor: pointer; }
+  .legende { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 14px; font: 13px var(--code); }
+  .legende i { display: inline-block; width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px; border: 2px solid var(--trait); }
+  .legende .tous { background: #cfe8d6; } .legende .certains { background: #fbefc4; }
+  .legende .jamais { background: #eceef3; } .legende .abandon { background: #f6d0cb; border-color: #b3261e; }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+<main>
+  <header>
+    <div class="surtitre">Passe parcours · le parcours modélisé</div>
+    <div class="corps">
+      <h1>{{titre}}</h1>
+      <p class="chapeau">{{chapeau}}</p>
+      <p class="meta">{{compte}}</p>
+      <p class="meta">Version modélisée : {{version}}</p>
+      {{legende}}
+    </div>
+  </header>
+  <section class="section" id="ensemble">
+    <h2>Le logigramme d'un seul tenant</h2>
+    <p class="aide">Par défaut, le chemin le plus court vers chaque écran depuis le lancement, avec le geste qui y mène. « Tous les liens » montre une flèche par paire d'écrans. Touche un écran, ou choisis-le dans la liste, pour ne voir que ses voisins et tous ses gestes.</p>
+    <div class="commandes">
+      <fieldset><legend>Sections montrées</legend><div id="cases" class="cases"></div></fieldset>
+      <fieldset><legend>Vue</legend><div class="cases">
+        <label class="case"><input type="radio" name="mode" value="arbre" checked> Le chemin vers chaque écran</label>
+        <label class="case"><input type="radio" name="mode" value="tous"> Tous les liens</label>
+        <label class="case"><input type="checkbox" id="retours" checked> avec les retours vers une section précédente</label>
+      </div></fieldset>
+      <label class="choix">Un écran <select id="choix"><option value="">Tout le parcours</option></select></label>
+    </div>
+    <div class="zoom" role="group" aria-label="Zoom du logigramme">
+      <button type="button" data-zoom="-1">−</button>
+      <button type="button" data-zoom="0">Taille réelle</button>
+      <button type="button" data-zoom="1">+</button></div>
+    <div class="schema" id="dessin"><p class="aide">Le logigramme se dessine…</p></div>
+    <div id="gestes-choisis"></div>
+  </section>
+  {{sections}}
+  <section class="ecarts">
+    <h2>Les écarts</h2>
+    <p class="aide">Ce que l'agent a trouvé en confrontant le code aux specs, et qui n'entre pas dans le logigramme. À lire avant de valider. La synthèse s'en sert ensuite : un testeur qui bute sur un écart connu le confirme, il ne le découvre pas.</p>
+    {{ecarts}}
+  </section>
+</main>
+<script type="application/json" id="donnees">{{donnees}}</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  // La vue d'ensemble se dessine ici, et non par le rendu Mermaid de la page : ses filtres
+  // redessinent le schéma. Deux cent trente liens d'un coup donnaient un écheveau illisible.
+  // La vue par défaut ne garde que le chemin le plus court vers chaque écran, un arbre lisible.
+  (function () {
+    var D = JSON.parse(document.getElementById('donnees').textContent);
+    var P = D.parcours, C = D.couverture;
+    var rang = {}; P.sections.forEach(function (s, i) { rang[s.id] = i; });
+    var ecran = {}; P.ecrans.forEach(function (e) { ecran[e.id] = e; });
+    var gestes = P.transitions.map(function (t, i) { return Object.assign({ n: i + 1 }, t); });
+    var etat = { sections: new Set(P.sections.map(function (s) { return s.id; })), retours: true, choisi: '', mode: 'arbre', facteur: 1 };
+    var zone = document.getElementById('dessin'), compteur = 0;
+    var sombre = window.matchMedia('(prefers-color-scheme: dark)').matches
+      && document.documentElement.dataset.theme !== 'light' || document.documentElement.dataset.theme === 'dark';
+    mermaid.initialize({ startOnLoad: false, theme: sombre ? 'dark' : 'neutral', maxEdges: 5000,
+      securityLevel: 'strict', flowchart: { useMaxWidth: false } });
+
+    function lib(texte) { return String(texte).replace(/"/g, '«').replace(/\s+/g, ' '); }
+    function noeud(id) { return '    ' + id + '["' + id + ' · ' + lib(ecran[id].titre) + '"]'; }
+    function classe(id) {
+      if (!C) return '';
+      var vu = C.ecrans[id] || {};
+      var c = vu.abandons ? 'abandon' : !vu.atteint ? 'jamais' : vu.atteint >= C.testeurs ? 'tous' : 'certains';
+      return '    class ' + id + ' ' + c;
+    }
+    var CLASSES = ['    classDef tous fill:#cfe8d6,stroke:#2b7a4b,color:#1b2033',
+      '    classDef certains fill:#fbefc4,stroke:#a77b00,color:#1b2033',
+      '    classDef jamais fill:#eceef3,stroke:#8a90a2,color:#5b6070',
+      '    classDef abandon fill:#f6d0cb,stroke:#b3261e,stroke-width:3px,color:#1b2033',
+      '    classDef choisi stroke:#2a4aa8,stroke-width:4px'];
+    function visible(g) {
+      var a = ecran[g.de].section, b = ecran[g.vers].section;
+      if (g.de === g.vers || !etat.sections.has(a) || !etat.sections.has(b)) return false;
+      return etat.mode === 'arbre' || etat.retours || rang[b] >= rang[a];
+    }
+    function codeEnsemble() {
+      var l = [etat.mode === 'arbre' ? 'flowchart LR' : 'flowchart TB'];
+      P.sections.forEach(function (s, i) {
+        if (!etat.sections.has(s.id)) return;
+        l.push('    classDef sec' + i + ' fill:' + TEINTES[i % TEINTES.length] + ',stroke:#1b2033,color:#1b2033');
+        P.ecrans.filter(function (e) { return e.section === s.id; }).forEach(function (e) {
+          l.push(noeud(e.id), C ? classe(e.id) : '    class ' + e.id + ' sec' + i); });
+      });
+      if (etat.mode === 'arbre') {
+        arbre().filter(visible).forEach(function (g) {
+          l.push('    ' + g.de + ' -->|"' + lib(court(g.geste)) + '"| ' + g.vers); });
+      } else {
+        var vues = {};
+        gestes.filter(visible).forEach(function (g) {
+          var cle = g.de + ' --> ' + g.vers;
+          if (!vues[cle]) { vues[cle] = 1; l.push('    ' + cle); } });
+      }
+      return l.concat(CLASSES).join('\n');
+    }
+    function court(t) { t = String(t); return t.length > 48 ? t.slice(0, 46) + '…' : t; }
+    // Le chemin le plus court vers chaque écran, en largeur depuis le premier. Un écran
+    // qu'aucun chemin n'atteint, comme l'entrée web, ouvre son propre arbre.
+    function arbre() {
+      var vu = new Set(), retenus = [];
+      P.ecrans.forEach(function (depart) {
+        if (vu.has(depart.id)) return;
+        vu.add(depart.id); var file = [depart.id];
+        while (file.length) {
+          var x = file.shift();
+          gestes.forEach(function (g) {
+            if (g.de === x && !vu.has(g.vers)) { vu.add(g.vers); retenus.push(g); file.push(g.vers); } });
+        }
+      });
+      return retenus;
+    }
+    var TEINTES = ['#dbe7f7', '#fbefc4', '#d7efdf', '#f7dcd5', '#e6dcf3', '#d6eef0', '#f1e3cf', '#e3e6ea', '#f3d9e8'];
+    function codeVoisins(x) {
+      var touches = gestes.filter(function (g) { return g.de === x || g.vers === x; });
+      var ids = new Set([x]); touches.forEach(function (g) { ids.add(g.de); ids.add(g.vers); });
+      var l = ['flowchart LR'];
+      ids.forEach(function (id) { l.push(noeud(id), classe(id)); });
+      l.push('    class ' + x + ' choisi');
+      var paires = {};
+      touches.forEach(function (g) { (paires[g.de + '|' + g.vers] = paires[g.de + '|' + g.vers] || []).push(g.n); });
+      Object.keys(paires).forEach(function (cle) {
+        var p = cle.split('|'); l.push('    ' + p[0] + ' -->|"' + paires[cle].join(' · ') + '"| ' + p[1]); });
+      return { code: l.concat(CLASSES).join('\n'), gestes: touches };
+    }
+    function echapper(t) { var d = document.createElement('div'); d.textContent = t || ''; return d.innerHTML; }
+    function tableau(liste) {
+      if (!liste) return '';
+      return '<div class="tableau"><table><thead><tr><th>N°</th><th>De → vers</th><th>Geste</th><th>Condition</th></tr></thead><tbody>'
+        + liste.map(function (g) { return '<tr><td class="num">' + g.n + '</td><td>' + g.de + ' → ' + g.vers
+          + '</td><td>' + echapper(g.geste) + '</td><td>' + echapper(g.condition) + '</td></tr>'; }).join('')
+        + '</tbody></table></div>';
+    }
+    function dessiner() {
+      var voisins = etat.choisi ? codeVoisins(etat.choisi) : null;
+      var code = voisins ? voisins.code : codeEnsemble();
+      mermaid.render('ensemble-' + (++compteur), code).then(function (rendu) {
+        zone.innerHTML = rendu.svg;
+        var svg = zone.querySelector('svg');
+        svg.dataset.largeur = svg.getBoundingClientRect().width;
+        svg.style.width = (svg.dataset.largeur * etat.facteur) + 'px';
+        zone.querySelectorAll('g.node').forEach(function (g) {
+          var m = g.id.match(/flowchart-(.+)-\d+$/);
+          if (m && ecran[m[1]]) g.addEventListener('click', function () { choisir(m[1]); });
+        });
+        document.getElementById('gestes-choisis').innerHTML = voisins
+          ? '<h3>Les gestes de ' + etat.choisi + ' · ' + echapper(ecran[etat.choisi].titre) + '</h3>' + tableau(voisins.gestes) : '';
+      }).catch(function (erreur) { zone.innerHTML = '<p class="aide">Le dessin a échoué : ' + echapper(erreur.message) + '</p>'; });
+    }
+    function choisir(id) { etat.choisi = id; document.getElementById('choix').value = id; dessiner(); }
+
+    var cases = document.getElementById('cases');
+    P.sections.forEach(function (s) {
+      var l = document.createElement('label'); l.className = 'case';
+      l.innerHTML = '<input type="checkbox" checked id="case-' + s.id + '"> ' + s.id + ' · ' + echapper(s.titre);
+      l.querySelector('input').addEventListener('change', function (e) {
+        if (e.target.checked) etat.sections.add(s.id); else etat.sections.delete(s.id); dessiner(); });
+      cases.appendChild(l);
+    });
+    var choix = document.getElementById('choix');
+    P.ecrans.forEach(function (e) {
+      var o = document.createElement('option'); o.value = e.id; o.textContent = e.id + ' · ' + e.titre; choix.appendChild(o); });
+    choix.addEventListener('change', function () { choisir(choix.value); });
+    document.querySelectorAll('input[name=mode]').forEach(function (r) {
+      r.addEventListener('change', function () { etat.mode = r.value; etat.choisi = ''; choix.value = ''; dessiner(); }); });
+    document.getElementById('retours').addEventListener('change', function (e) { etat.retours = e.target.checked; dessiner(); });
+    document.querySelector('#ensemble .zoom').addEventListener('click', function (e) {
+      var b = e.target.closest('button'), svg = zone.querySelector('svg');
+      if (!b || !svg) return;
+      var pas = Number(b.dataset.zoom);
+      etat.facteur = pas === 0 ? 1 : Math.min(3, Math.max(0.2, etat.facteur * (pas > 0 ? 1.25 : 0.8)));
+      svg.style.width = (svg.dataset.largeur * etat.facteur) + 'px';
+    });
+    dessiner();
+  })();
+
+  // Le zoom agit sur la largeur du dessin, que Mermaid pose après le chargement de la page.
+  document.querySelectorAll('.section:not(#ensemble) .zoom').forEach(function (barre) {
+    var schema = barre.nextElementSibling;
+    var facteur = 1;
+    barre.addEventListener('click', function (evenement) {
+      var bouton = evenement.target.closest('button');
+      var dessin = schema.querySelector('svg');
+      if (!bouton || !dessin) return;
+      if (!dessin.dataset.largeur) dessin.dataset.largeur = dessin.getBoundingClientRect().width / facteur;
+      var pas = Number(bouton.dataset.zoom);
+      facteur = pas === 0 ? 1 : Math.min(3, Math.max(0.3, facteur * (pas > 0 ? 1.25 : 0.8)));
+      dessin.style.width = (Number(dessin.dataset.largeur) * facteur) + 'px';
+    });
+  });
+  // Les logigrammes de section comptent sur le rendu Mermaid de l'artefact, qui ne sert que la
+  // page principale. Jointe à la synthèse ou ouverte en fichier, la page les dessine elle-même.
+  window.addEventListener('load', function () {
+    setTimeout(function () {
+      var restants = Array.from(document.querySelectorAll('pre.mermaid'))
+        .filter(function (pre) { return !pre.dataset.processed && !pre.querySelector('svg'); });
+      if (restants.length) mermaid.run({ nodes: restants });
+    }, 400);
+  });
+</script>
