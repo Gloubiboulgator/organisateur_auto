@@ -13,12 +13,13 @@
 //
 // COMMENT ON S'EN SERT, depuis `lancer_testeurs.py` et `piloter.py`, jamais à la main :
 //     node pilote-web.cjs demarrer
-//     node pilote-web.cjs toucher 215 640 <capture.jpg>
+//     node pilote-web.cjs toucher
 //     node pilote-web.cjs arreter
 // La configuration se lit dans le fichier que nomme `F5_PILOTE`. Playwright se trouve par
 // `NODE_PATH`, que le lanceur pose.
 'use strict';
 const fs = require('fs');
+const readline = require('readline');
 const { spawn } = require('child_process');
 
 let chromium;
@@ -30,10 +31,33 @@ try {
 }
 
 const conf = JSON.parse(fs.readFileSync(process.env.F5_PILOTE, 'utf8'));
-// Le temps laissé à la page pour réagir avant la photo, comme côté Android.
-const REPOS_APRES_GESTE = 1500;
-// Au-delà, la liste noie l'écran sous les liens de pied de page.
-const ELEMENTS_MAX = 40;
+
+// Une photo PNG de la page. Prise en pleine navigation, elle peut échouer : elle se retente
+// alors, cinq fois au plus. Relevé par la revue de la 114, le 2026-11-19.
+async function photographier(page) {
+  for (let essai = 1; ; essai += 1) {
+    try {
+      return await page.screenshot({ type: 'png' });
+    } catch (erreur) {
+      if (essai >= 5) throw erreur;
+      await new Promise((fini) => setTimeout(fini, 100));
+    }
+  }
+}
+
+// Dit « fait » une fois le geste joué, puis rend une photo PNG à chaque ligne « photo » de
+// `piloter.py`, précédée de sa taille, jusqu'à la ligne « fin ». L'attente de la pose tourne
+// là-bas, seule, pour les deux plateformes. Relevé par la revue de la 114, le 2026-11-19.
+async function servirLesPhotos(page, lignes) {
+  process.stdout.write('fait\n');
+  for (;;) {
+    const { value: ligne, done } = await lignes.next();
+    if (done || ligne !== 'photo') break;
+    const png = await photographier(page);
+    process.stdout.write(`${png.length}\n`);
+    process.stdout.write(png);
+  }
+}
 
 async function rattacher() {
   const navigateur = await chromium.connectOverCDP(`http://127.0.0.1:${conf.port}`);
@@ -54,46 +78,36 @@ const GESTES = {
     await page.mouse.wheel(Number(x1) - Number(x2), Number(y1) - Number(y2));
   },
   taper: async (page, [texte]) => page.keyboard.type(texte, { delay: 40 }),
-  retour: async (page) => page.goBack().catch(() => null),
-  relancer: async (page) => page.goto(conf.url),
+  // `retour` et `relancer` rendent la main dès que la page change, sans attendre son chargement.
+  // L'attente de la pose le mesure alors, comme sur Android. Relevé par la revue de la 114.
+  retour: async (page) => page.goBack({ waitUntil: 'commit' }).catch(() => null),
+  relancer: async (page) => page.goto(conf.url, { waitUntil: 'commit' }),
 };
 
-function elementsVisibles() {
-  // Évaluée dans la page : ce qu'un humain voit et peut toucher, sans aucun identifiant.
-  // Le curseur « main » rattrape les boutons faits de simples blocs, que les balises manquent.
-  // Un bloc dont le parent montre déjà la main est un morceau du même bouton, il ne compte pas.
-  const cibles = 'a, button, input, select, textarea, summary, label, [role=button], [role=link]';
-  const main = (noeud) => noeud && getComputedStyle(noeud).cursor === 'pointer';
-  const noeuds = [...document.querySelectorAll('body *')].filter((noeud) => noeud.matches(cibles)
-    || (main(noeud) && !main(noeud.parentElement)));
-  return noeuds.map((noeud) => {
-    const boite = noeud.getBoundingClientRect();
-    const texte = (noeud.innerText || noeud.getAttribute('aria-label') || noeud.placeholder
-      || noeud.value || '').trim().replace(/\s+/g, ' ').slice(0, 60);
-    return { texte, x: boite.x + boite.width / 2, y: boite.y + boite.height / 2,
-      visible: boite.width > 0 && boite.height > 0 && boite.bottom > 0
-        && boite.top < innerHeight && getComputedStyle(noeud).visibility !== 'hidden' };
-  }).filter((e) => e.visible && e.texte);
-}
-
-async function jouer(geste, valeurs, destination) {
+async function jouer(geste) {
+  const lignes = readline.createInterface({ input: process.stdin })[Symbol.asyncIterator]();
   const { navigateur, page } = await rattacher();
   const origine = new URL(conf.url).origin;
   // L'échelle se mesure à chaque geste. Chromium sans fenêtre impose sa largeur minimale, et
   // une échelle tirée de la configuration visait à côté : mesuré, 751 pixels au lieu de 618.
   const echelle = await page.evaluate(() => devicePixelRatio);
-  await GESTES[geste](page, geste === 'taper' ? valeurs : valeurs.map((v) => Number(v) / echelle));
-  await page.waitForTimeout(geste === 'voir' ? 0 : REPOS_APRES_GESTE);
-  await page.screenshot({ path: destination, type: 'jpeg', quality: 75 });
-  const bruts = await page.evaluate(elementsVisibles);
-  const elements = bruts.slice(0, ELEMENTS_MAX).map((e) => ({ texte: e.texte,
-    x: Math.round(e.x * echelle), y: Math.round(e.y * echelle) }));
-  const largeur = Math.round((await page.evaluate(() => innerWidth)) * echelle);
+  const [vw, vh] = await page.evaluate(() => [innerWidth, innerHeight]);
+  // `piloter.py` reçoit la taille de la page, y décale le doigt, puis rend les valeurs du geste.
+  // Le décalage n'a ainsi qu'une copie, la sienne. Relevé par la revue de la 114.
+  process.stdout.write(`taille ${echelle} ${vw} ${vh}\n`);
+  const { value: reponse } = await lignes.next();
+  const valeurs = JSON.parse(reponse);
+  const css = geste === 'taper' ? valeurs : valeurs.map((v) => Number(v) / echelle);
+  await GESTES[geste](page, css);
+  await servirLesPhotos(page, lignes);
+  // Le constat seul, sans la commande qui ramène : un humain n'a personne pour la lui souffler.
   const remarques = new URL(page.url()).origin === origine ? []
-    : ["Tu as quitté le site de départ. « relancer » t'y ramène."];
+    : ['Tu as quitté le site de départ.'];
   // Se détacher sans fermer : la page doit survivre jusqu'au geste suivant.
   await navigateur.close();
-  return { elements, remarques, largeur };
+  // Aucune liste des éléments à toucher. Elle donnait le texte de chaque bouton et de chaque lien,
+  // ce que le coup d'œil flou cache au testeur. Il vise sur l'image, comme un humain. 2026-11-18.
+  return { remarques };
 }
 
 function demarrer() {
@@ -113,12 +127,11 @@ async function arreter() {
 }
 
 async function principal() {
-  const [geste, ...reste] = process.argv.slice(2);
+  const [geste] = process.argv.slice(2);
   if (geste === 'demarrer') return demarrer();
   if (geste === 'arreter') return arreter();
   if (!GESTES[geste]) throw new Error(`geste inconnu : ${geste}`);
-  const destination = reste.pop();
-  process.stdout.write(JSON.stringify(await jouer(geste, reste, destination)));
+  process.stdout.write(JSON.stringify(await jouer(geste)));
 }
 
 principal().catch((erreur) => {

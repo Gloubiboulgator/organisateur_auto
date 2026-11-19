@@ -1,6 +1,6 @@
 # Les huit mécaniques, et ce qu'elles coûtent vraiment
 
-À lire à l'étape 3, une fois le verdict rendu. Ce fichier ne recopie aucune règle. Il sert à
+À lire à l'étape 4, une fois la famille établie. Ce fichier ne recopie aucune règle. Il sert à
 **choisir**, puis à annoncer le vrai prix. La liste vivante des garde-fous existants est le
 registre [`docs/garde-fous.md`](../../../../docs/garde-fous.md), pas ce fichier.
 

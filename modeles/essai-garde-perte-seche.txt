@@ -15,7 +15,7 @@
 #   @ARBRE_TEMP@   un worktree d'essai posé sous /tmp
 #   @ARBRE_TEMP_ORPHELIN@   un worktree d'essai sous /tmp, au commit orphelin
 #
-# CAS_ATTENDUS 121
+# CAS_ATTENDUS 142
 #
 # LE COMPTE CI-DESSUS EST ÉPINGLÉ, et le script refuse de tourner s'il ne tombe pas juste.
 # Sans lui, retirer un cas ne fait rien rougir, et la couverture rétrécit en silence.
@@ -194,3 +194,54 @@ DOIT_REFUSER|git push --delete avance fusionnee
 # et pousse vers un autre, que le garde doit lire.
 # motif: un git fetch la rapporte
 DOIT_REFUSER|git push --delete croise fusionnee
+
+# LE FORÇAGE ÉCRIT AUTREMENT — 2026-11-18
+# Les options courtes collées forment un autre mot que « -f ». Rejoué sur un faux distant le
+# 2026-10-29, qui a accepté la réécriture.
+# motif: historique distant
+DOIT_REFUSER|git push -uf origin @PRINCIPALE@
+# motif: historique distant
+DOIT_REFUSER|git push -fu origin @PRINCIPALE@
+# motif: historique distant
+DOIT_REFUSER|git push --force-with-lease=@PRINCIPALE@ origin @PRINCIPALE@
+# Trois retraits de branches distantes, observés sur un faux distant le 2026-11-18.
+# motif: --mirror
+DOIT_REFUSER|git push --mirror origin
+# motif: --prune
+DOIT_REFUSER|git push --prune origin 'refs/heads/*:refs/heads/*'
+# Un « :branche » se juge comme un --delete.
+# motif: porte des commits
+DOIT_REFUSER|git push origin :travail
+DOIT_PASSER|git push origin :fusionnee
+# motif: retire une branche du distant
+DOIT_REFUSER|git push origin @PRINCIPALE@ :fusionnee
+# Un -d collé à une autre lettre reste un retrait, jugé prudemment.
+DOIT_REFUSER|git push -qd origin travail
+# Le distant nommé par --repo n'est pas un refspec. Le premier refspec passait sans examen,
+# relevé par la revue de la 111 le 2026-11-19.
+# motif: refspec en
+DOIT_REFUSER|git push --repo origin +travail
+# motif: retire une branche du distant
+DOIT_REFUSER|git push --repo=origin :travail
+# Un « : » seul pousse les branches de même nom, et ne retire rien.
+DOIT_PASSER|git push origin :
+# Une poussée ordinaire, et une valeur de -o qui contient un f, passent.
+DOIT_PASSER|git push -u origin travail
+DOIT_PASSER|git push -o fix origin travail
+
+# LA SUPPRESSION FORCÉE D'UNE BRANCHE, ÉCRITE AUTREMENT — 2026-11-18
+# « -d -f », « -df » et « -d --force » suppriment une branche non fusionnée autant que « -D »,
+# observé sur un dépôt jetable le 2026-11-18.
+# motif: non fusionn
+DOIT_REFUSER|git branch -D travail
+# motif: non fusionn
+DOIT_REFUSER|git branch -d -f travail
+# motif: non fusionn
+DOIT_REFUSER|git branch -df travail
+# motif: non fusionn
+DOIT_REFUSER|git branch -d --force travail
+# motif: non fusionn
+DOIT_REFUSER|git branch --delete -f travail
+# Une branche fusionnée ne perd rien, même forcée. Un -d simple, git le refuse lui-même.
+DOIT_PASSER|git branch -df fusionnee
+DOIT_PASSER|git branch -d travail

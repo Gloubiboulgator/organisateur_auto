@@ -11,15 +11,20 @@ Chaque testeur est donc une session `claude -p` à part, née dans un dossier ne
 charge aucun réglage, aucun serveur d'outils, aucune mémoire. Elle n'a que deux droits.
 
 - Lancer `./piloter`, qui agit sur son appareil et le photographie.
-- Lire les fichiers de son propre dossier, donc ses captures.
+- Lire les fichiers de son propre dossier, donc ses coups d'œil et ce qu'il a lu.
 
 Tout le reste est refusé par le mode `dontAsk`. Vérifié le même jour : lire un fichier du
 projet, lancer `ls /`, ou enchaîner une commande après `./piloter`, tout part en refus.
 
+Refait le 2026-11-19 pour le dossier des captures nettes, voisin de celui du testeur. Le lire
+par `Read`, en chemin relatif ou absolu, part en refus. Par `cat`, ou caché dans un appel à
+`./piloter`, aussi.
+
 CE QU'IL FAIT, pour chaque testeur
 ----------------------------------
 1. Prépare un appareil neuf, un émulateur en lecture seule ou un Chromium au profil vide.
-2. Pose `./piloter` dans le dossier neutre, et sa configuration hors de ce dossier.
+2. Pose `./piloter` dans le dossier neutre, et hors de ce dossier sa configuration et le dossier
+   de ses captures nettes. Le testeur ne reçoit que des coups d'œil flous.
 3. Lance la session du testeur, avec la consigne et la forme du rapport.
 4. Rapatrie captures, journal et rapport dans le dossier de sortie, puis rend l'appareil.
 
@@ -82,7 +87,7 @@ def trouver_claude():
 
 def verifier_outils(args):
     """Un outil absent se signale et arrête tout, il ne se contourne pas."""
-    manquants = [o for o in ("ffmpeg",) if not shutil.which(o)]
+    manquants = [o for o in ("ffmpeg", "ffprobe") if not shutil.which(o)]
     if args.plateforme == "android":
         manquants += [o for o in (args.adb, args.emulateur) if not os.access(o, os.X_OK)]
     else:
@@ -217,12 +222,17 @@ def tester(args, rang, racine, sortie):
     """Un testeur de bout en bout. Une panne se rapporte, elle n'arrête pas les autres."""
     dossier = racine / f"testeur-{rang}"
     dossier.mkdir()
+    # Les captures nettes vivent hors du dossier du testeur : il lirait sinon ce que le coup
+    # d'œil lui cache.
+    nettes = racine / f"nettes-{rang}"
+    nettes.mkdir()
     shutil.copy(ICI / "piloter.py", dossier / "piloter")
     (dossier / "piloter").chmod(0o755)
     rendre = None
     try:
         conf, rendre = PREPARER[args.plateforme](args, rang, racine)
         conf["actions_max"] = args.actions_max
+        conf["dossier_net"] = str(nettes)
         chemin_conf = racine / f"pilote-{rang}.json"
         chemin_conf.write_text(json.dumps(conf), encoding="utf-8")
         dire(f"testeur {rang} : appareil prêt, la session commence")
@@ -235,12 +245,14 @@ def tester(args, rang, racine, sortie):
                 rendre()
             except Exception as panne:
                 dire(f"testeur {rang} : l'appareil n'a pas pu être rendu ({panne!r})")
-    return rapatrier(rang, dossier, sortie, brut, erreurs)
+    return rapatrier(rang, dossier, sortie, brut, erreurs, nettes)
 
 
-def rapatrier(rang, dossier, sortie, brut, erreurs):
+def rapatrier(rang, dossier, sortie, brut, erreurs, nettes=None):
     cible = sortie / f"testeur-{rang}"
     shutil.copytree(dossier, cible, ignore=shutil.ignore_patterns("piloter"))
+    if nettes and nettes.is_dir():
+        shutil.copytree(nettes, cible / "nettes", ignore=shutil.ignore_patterns(".*", "*.png"))
     (cible / "sortie-session.json").write_text(brut or "{}", encoding="utf-8")
     try:
         donnees = json.loads(brut)

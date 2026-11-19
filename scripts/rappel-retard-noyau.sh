@@ -4,7 +4,7 @@
 #
 # POURQUOI. Un projet équipé a passé dix jours sans recevoir une règle qui devait réduire le coût
 # de ses revues de moitié. L'avertissement de verifier-noyau.sh ne tourne qu'au commit, et il ne
-# sait pas comparer depuis un worktree, où le dépôt du noyau n'est plus à côté du projet.
+# savait pas encore comparer depuis un worktree, où le dépôt du noyau n'est plus à côté du projet.
 #
 # LE SEUIL est de sept jours, décidé par l'admin le 2026-10-30. RAPPEL_RETARD_JOURS le change.
 # LE RETARD se compte depuis l'arrivée, sur la ligne principale du noyau, du premier changement

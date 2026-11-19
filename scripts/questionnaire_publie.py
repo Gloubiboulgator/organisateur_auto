@@ -37,8 +37,9 @@ UN QUESTIONNAIRE ILLISIBLE SE DIT. Une page qui déclare VALIDER et QUESTIONS, d
 question ne se lit, sort une ligne qui commence par « ? ». Le garde des questions demande
 alors confirmation, au lieu de laisser passer en silence.
 
-Usage, depuis un garde : la charge du hook sur l'entrée, puis `options` ou `illisibles`. Une
-faute par ligne en sortie, déjà échappée pour une chaîne JSON. Rien en sortie, rien à dire.
+Usage, depuis un garde : la charge du hook sur l'entrée, puis `options-et-maquettes` ou
+`illisibles`. Une faute par ligne en sortie, déjà échappée pour une chaîne JSON. Rien en sortie,
+rien à dire.
 ÉCHOUE OUVERT : une charge illisible ne sort rien.
 """
 from __future__ import annotations
@@ -364,23 +365,100 @@ def nom_de(q: dict) -> str:
     return q["id"] if isinstance(q["id"], str) else "?"
 
 
-def options_sans_cas(qs: list[dict]) -> list[str]:
-    """Chaque option à choisir qui ne dit pas, en douze signes au moins, quand elle gagne."""
-    fautes = []
+def _options_a_choisir(qs: list[dict]):
+    """Chaque option d'une question à choisir, avec sa question et son nom cité dans un refus."""
     for q in qs:
         options = q.get("options")
         if not isinstance(options, list):
             continue
         for o in options:
-            if not isinstance(o, dict):
-                continue
-            cas = o.get("gagneSi")
-            if isinstance(cas, (Nom, Inconnu)):
-                continue
-            if not (isinstance(cas, str) and len(cas.strip()) >= 12):
+            if isinstance(o, dict):
                 code = o.get("code") if isinstance(o.get("code"), str) else "?"
-                fautes.append(nom_de(q) + "-" + code)
+                yield q, o, nom_de(q) + "-" + code
+
+
+def _vrai(v) -> bool:
+    """Le booléen `true`, que le lecteur rend comme un nom nu. Ni un texte, ni une image."""
+    return isinstance(v, Nom) and v.nom == "true"
+
+
+def _texte_suffisant(v, n: int = 12) -> bool:
+    """Un texte de n signes au moins, ou une valeur incalculable."""
+    return isinstance(v, (Nom, Inconnu)) or (isinstance(v, str) and len(v.strip()) >= n)
+
+
+def options_sans_cas(qs: list[dict]) -> list[str]:
+    """Chaque option à choisir qui ne dit pas, en douze signes au moins, quand elle gagne."""
+    return [cite for _, o, cite in _options_a_choisir(qs) if not _texte_suffisant(o.get("gagneSi"))]
+
+
+# La maquette d'exemple du modèle, un cadre gris. Laissée telle quelle, elle ne montre aucune
+# option : elle compte pour une absence.
+EXEMPLE = "MAQUETTE_EXEMPLE"
+
+
+def _source(image):
+    """La source d'une image {src, alt}, telle que le lecteur la rend. None sans objet."""
+    return image.get("src") if isinstance(image, dict) else None
+
+
+def _a_une_image(o: dict, deja: set[str]) -> bool:
+    """Vrai si l'option porte sa propre image, une source non vide ou incalculable.
+
+    Ne comptent pas la maquette d'exemple, `true`, ni une source déjà vue dans la question. Une
+    image en simple texte manque aussi, car le modèle n'affiche que la forme {src, alt}."""
+    image = o.get("image")
+    if isinstance(image, Nom):
+        return not _vrai(image) and image.nom != EXEMPLE
+    if isinstance(image, Inconnu):
+        return True
+    src = _source(image)
+    if isinstance(src, Nom):
+        return not _vrai(src) and src.nom != EXEMPLE
+    if isinstance(src, Inconnu):
+        return True
+    return isinstance(src, str) and src.strip() != "" and src.strip() not in deja
+
+
+def options_sans_maquette(qs: list[dict]) -> list[str]:
+    """Chaque option à choisir sans sa maquette, quand la question ne se dit pas sans écran.
+
+    POURQUOI. Le 2026-11-17, un questionnaire d'un projet équipé portait une capture de l'écran
+    actuel par question, et trois options sans aucune image. L'admin n'a pas pu choisir. La
+    règle « sa capture ou sa maquette » se remplissait avec l'existant, au niveau de la question.
+
+    Chaque option porte donc son `image`, la variante posée sur l'écran réel. La capture de la
+    question ne montre aucune variante, ni une image reprise d'une option à l'autre. Les deux
+    comptent pour une absence, comme la maquette d'exemple du modèle.
+
+    Une question sans écran le dit par `sansEcran`, en douze signes au moins. Une question qui porte sa capture a un écran,
+    et son `sansEcran` ne la dispense pas.
+    """
+    fautes = []
+    for q in qs:
+        options = q.get("options")
+        if not isinstance(options, list):
+            continue
+        image = q.get("image")
+        capture = _source(image)
+        sans = q.get("sansEcran")
+        # Une image incalculable, comme `image:CAPTURE`, reste une capture : la question a un écran.
+        sans_capture = image is None or _vrai(image)
+        if sans_capture and not _vrai(sans) and _texte_suffisant(sans):
+            continue
+        sources = [_source(o.get("image")) for o in options if isinstance(o, dict)]
+        sources = [s.strip() for s in sources if isinstance(s, str) and s.strip()]
+        deja = {s for s in sources if sources.count(s) > 1}
+        if isinstance(capture, str) and capture.strip():
+            deja.add(capture.strip())
+        fautes += [cite for _, o, cite in _options_a_choisir([q]) if not _a_une_image(o, deja)]
     return fautes
+
+
+def options_et_maquettes(qs: list[dict]) -> list[tuple[str, str]]:
+    """Les deux fautes du garde des options en une lecture, chacune avec sa sorte."""
+    return [("cas", f) for f in options_sans_cas(qs)] + \
+        [("maquette", f) for f in options_sans_maquette(qs)]
 
 
 # Ce qui trahit la langue du dépôt dans une carte. A3 à A5 et MP3, MP4 sont des mots courants.
@@ -494,7 +572,8 @@ def retouchee_dans_le_message(faites: list[tuple], place: tuple, mid, page: str,
 
 def main() -> None:
     mode = sys.argv[1] if len(sys.argv) > 1 else ""
-    juge = {"options": options_sans_cas, "illisibles": questions_illisibles}.get(mode)
+    juge = {"options-et-maquettes": options_et_maquettes,
+            "illisibles": questions_illisibles}.get(mode)
     try:
         charge = json.load(sys.stdin)
         pages = pages_envoyees(charge) if juge and isinstance(charge, dict) else []
@@ -513,7 +592,10 @@ def main() -> None:
             continue
         prefixe = nom + " " if len(pages) > 1 else ""
         for faute in (juge(qs) if qs else []):
-            print(json.dumps(prefixe + faute, ensure_ascii=False)[1:-1])
+            # Une faute qui porte sa sorte la garde en tête de ligne, devant le nom de la page.
+            sorte, faute = faute if isinstance(faute, tuple) else ("", faute)
+            ligne = (sorte + " " if sorte else "") + prefixe + faute
+            print(json.dumps(ligne, ensure_ascii=False)[1:-1])
 
 
 if __name__ == "__main__":

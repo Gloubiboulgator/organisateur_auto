@@ -199,7 +199,9 @@ un contenu qu'il connaît, et se lit en dix secondes. Sinon elle ne part pas.
   option.
 - Les sources, citées mot pour mot, chacune avec un lien vers son fichier ou sa page.
 - Une case libre, « Autre, ou précision à apporter ».
-- Pour ce qui se voit, sa capture ou sa maquette. Sans image, la question ne part pas.
+- Pour ce qui se voit, la capture de l'écran actuel, et sous chaque option sa maquette, posée
+  sur l'écran réel. Sans image, la question ne part pas. Une question qui n'a rien à montrer le
+  dit, avec sa raison, dans le champ `sansEcran` du modèle.
 - Pour chaque chiffre, son échelle, en euros, en durée ou en usages que l'admin connaît.
 
 **La revue de conception avant la lecture à froid.** Un agent qui a le dépôt juge chaque option
