@@ -266,6 +266,80 @@ def ne_perd_rien(p: Path):
     Un refus dont le texte se contredit apprend à passer outre. Mesuré le 2026-09-10."""
     return p.is_dir() and not fichiers_sous(p)
 
+def branche_forcee(args):
+    """Vrai pour un `git branch` qui supprime sans regarder la fusion : -D, ou -d avec -f."""
+    lettres = "".join(a[1:] for a in args if a.startswith("-") and not a.startswith("--"))
+    longues = [a.partition("=")[0] for a in args if a.startswith("--")]
+    efface = "d" in lettres or "--delete" in longues
+    force = "f" in lettres or "--force" in longues
+    return "D" in lettres or (efface and force)
+
+def push_rendu(racine, args):
+    """Les refus d'un `git push`, vides si la poussée ne réécrit ni ne retire rien sur le distant.
+
+    LES OPTIONS SE LISENT LETTRE PAR LETTRE. Le garde comparait chaque argument à `--force`, `-f`
+    et `--force-with-lease`, mot pour mot. `git push -uf origin main` et
+    `--force-with-lease=main` écrasaient donc l'historique distant sans refus. Rejoué sur un faux
+    distant, qui a accepté la réécriture, le 2026-10-29.
+
+    `--prune`, `--mirror` et un refspec en « :branche » retirent des branches du distant. Observé
+    sur un faux distant le 2026-11-18 : « :autre » a retiré autre, `--prune` deux branches sans
+    pendant local, `--mirror` une branche absente de la copie locale."""
+    lettres, longues, libres, depot = "", [], [], None
+    i = 1
+    while i < len(args):
+        a = args[i]
+        if a == "--":
+            libres += args[i + 1:]; break
+        if a.startswith("--"):
+            nom = a.partition("=")[0]
+            longues.append(nom)
+            if nom == "--repo":
+                depot = a.partition("=")[2] if "=" in a else (args[i + 1] if i + 1 < len(args) else "")
+            # `--repo`, `--receive-pack`, `--exec` et `--push-option` prennent une valeur.
+            if "=" not in a and nom in ("--repo", "--receive-pack", "--exec", "--push-option"):
+                i += 1
+        elif a.startswith("-") and len(a) > 1:
+            for j, c in enumerate(a[1:], 1):
+                lettres += c
+                # `-o` prend une valeur, collée ou au mot suivant. Ce qui la suit n'est pas une option.
+                if c == "o":
+                    if not a[j + 1:]:
+                        i += 1
+                    break
+        else:
+            libres.append(a)
+        i += 1
+    # LE DISTANT NOMMÉ PAR `--repo` N'EST PAS UN MOT LIBRE. Le premier mot libre se lisait
+    # toujours comme le distant, et `git push --repo origin +main` passait. Relevé par la revue
+    # de la 111, le 2026-11-19.
+    if depot is not None:
+        distant, refspecs = depot, libres
+    else:
+        distant, refspecs = (libres[0] if libres else ""), libres[1:]
+    if "f" in lettres or any(n in ("--force", "--force-with-lease") for n in longues):
+        return ["git push forcé : réécrit l'historique distant, ce que rien ne rend"]
+    # Le forçage n'était reconnu qu'au drapeau. Un refspec en « + » force autant. 2026-09-10.
+    if any(a.startswith("+") for a in refspecs):
+        return ["git push d'un refspec en « + » : forçage écrit autrement, même perte"]
+    if "--mirror" in longues:
+        return ["git push --mirror : réécrit et retire les branches du distant, ce que rien ne rend"]
+    if "--prune" in longues:
+        return ["git push --prune : retire du distant les branches qui n'ont pas de pendant ici"]
+    # Un « : » seul pousse les branches de même nom, sans rien retirer. Relevé par la revue de la
+    # 111, le 2026-11-19.
+    retraits = [a for a in refspecs if a.startswith(":") and a != ":"]
+    if retraits:
+        # Un « :branche » est un retrait écrit autrement, et se juge comme lui. Mêlé à une poussée
+        # ou à une option, le garde ne le juge pas.
+        if lettres or longues or len(retraits) < len(refspecs):
+            return ["git push d'un refspec en « : » : retire une branche du distant, que rien ne rend"]
+        return branches_distantes_rendues(racine, ["push", "--delete", distant,
+                                                   *[a[1:] for a in retraits]])
+    if "d" in lettres or "--delete" in longues:
+        return branches_distantes_rendues(racine, args)
+    return []
+
 # Le distant se lit en direct, sous un butoir. Le garde lui-même est tué au-delà de trente secondes.
 BUTOIR_DISTANT = 10
 
@@ -1104,21 +1178,17 @@ while a_juger:
                 cibles = [a for a in args[1:] if not a.startswith("-")]
             elif sous == "stash" and args[1:2] and args[1] in ("drop", "clear"):
                 refus.append("git stash " + args[1] + " jette du travail mis de côté, que rien ne rend"); continue
-            elif sous == "branch" and ("-D" in args or ("--delete" in args and "--force" in args)):
+            # Les options se lisent lettre par lettre, comme pour `git push`. « -d -f », « -df » et
+            # « -d --force » suppriment autant que « -D », observé le 2026-11-18, et passaient.
+            elif sous == "branch" and branche_forcee(args[1:]):
                 noms = [a for a in args[1:] if not a.startswith("-")]
                 rc, nm = git(racine, "branch", "--no-merged")
                 non_fusionnees = {b.strip("* ").strip() for b in nm.splitlines()}
                 for n in noms:
                     if n in non_fusionnees: refus.append(f"git branch -D {n} : branche non fusionnée, ses commits seraient perdus")
                 continue
-            elif sous == "push" and any(a in ("--force", "-f", "--force-with-lease") for a in args):
-                refus.append("git push forcé : réécrit l'historique distant, ce que rien ne rend"); continue
-            # Le forçage n'était reconnu qu'au drapeau. Un refspec en « + » force autant, et
-            # `--delete` retire une branche du distant. Les deux passaient. 2026-09-10.
-            elif sous == "push" and any(a.startswith("+") for a in args[1:]):
-                refus.append("git push d'un refspec en « + » : forçage écrit autrement, même perte"); continue
-            elif sous == "push" and any(a in ("--delete", "-d") for a in args):
-                refus += branches_distantes_rendues(racine, args); continue
+            elif sous == "push":
+                refus += push_rendu(racine, args); continue
             elif sous == "worktree" and args[1:2] == ["remove"] and "--force" in args:
                 refus += worktree_rendu(racine, args); continue
             else:

@@ -27,6 +27,16 @@
             "statusMessage": "Pose les hooks du noyau"
           }
         ]
+      },
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/scripts/rappel-retard-noyau.sh\" || true",
+            "statusMessage": "Regarde si le noyau a pris du retard"
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -89,6 +99,15 @@
             "command": "${CLAUDE_PROJECT_DIR}/scripts/garde-revue-de-conception.sh"
           }
         ]
+      },
+      {
+        "matcher": "Bash|Write|Edit|NotebookEdit|Artifact|SendUserFile|mcp__.*show_widget",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/scripts/garde-dessin-agent.sh"
+          }
+        ]
       }
     ],
     "Stop": [
@@ -105,6 +124,10 @@
           {
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/scripts/garde-incapacite-declaree.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/scripts/garde-generations-montrees.sh"
           }
         ]
       }

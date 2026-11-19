@@ -42,7 +42,27 @@ for a in "$@"; do
 done
 cible="${args:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cible="$(cd "$cible" 2>/dev/null && pwd)" || { echo "chemin introuvable" >&2; exit 1; }
+# LE DOSSIER PRINCIPAL, pas le worktree. Le dépôt du noyau se cherche aussi à côté de lui. Depuis
+# un worktree, le voisin du worktree n'est pas celui du projet, et le retard n'était jamais
+# comparé. Joué sur une pose neuve, le 2026-10-30. rappel-retard-noyau.sh l'avait déjà appris.
+# git le nomme en tête de « worktree list ». Le parent du dossier commun se trompait pour un
+# sous-module, dont le dossier commun vit sous .git/modules du projet hôte. Relevé par la revue
+# de la 111, le 2026-11-19.
+# Un dépôt nu n'est pas un dossier de projet : son worktree de tête ne compte pas.
+principal=$(git -C "$cible" worktree list --porcelain 2>/dev/null |
+            awk 'BEGIN { RS = ""; FS = "\n" } NR == 1 { if ($0 !~ /\nbare(\n|$)/) { sub(/^worktree /, "", $1); print $1 }; exit }')
+[ -n "$principal" ] || principal="$cible"
+# Un worktree lié a son propre dossier git, distinct du dossier commun.
+commun=$(git -C "$cible" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || commun=""
+propre=$(git -C "$cible" rev-parse --path-format=absolute --git-dir 2>/dev/null) || propre=""
+lie=""
+[ -n "$commun" ] && [ "$(cd -P "$propre" 2>/dev/null && pwd)" != "$(cd -P "$commun" 2>/dev/null && pwd)" ] && lie=1
 empreintes="$cible/.noyau-empreintes"
+# Un fichier d'empreintes ignoré par git n'est pas dans un worktree. Il se lit au dossier principal.
+# Un fichier suivi, lui, ne se remplace pas : sa suppression indexée doit rester visible.
+if [ ! -f "$empreintes" ] && git -C "$cible" check-ignore -q .noyau-empreintes 2>/dev/null; then
+    empreintes="$principal/.noyau-empreintes"
+fi
 
 if [ ! -f "$empreintes" ]; then
     echo "verifier-noyau : le noyau n'est pas posé dans « $cible » (pas d'empreintes)." >&2
@@ -71,6 +91,13 @@ if [ -n "$bricoles" ]; then
     printf '%b\n' "$bricoles" >&2
     echo "   Une règle se change dans le noyau, puis se rediffuse. Un contrôle propre au projet" >&2
     echo "   vit dans scripts/doc-lint-local.sh." >&2
+    # Des empreintes lues au dossier principal décrivent sa pose, pas celle de ce worktree. Une
+    # pose plus récente là-bas fait accuser une branche qui ne l'a pas encore. Relevé par la
+    # revue de la 111, le 2026-11-19.
+    if [ "$empreintes" != "$cible/.noyau-empreintes" ]; then
+        echo "   Empreintes lues au dossier principal : si sa pose est plus récente, fusionner sa" >&2
+        echo "   branche ici, puis recommencer." >&2
+    fi
     fail=1
 fi
 if [ -n "$manquants" ]; then
@@ -114,7 +141,8 @@ source_depot=""
 # donc que le commit inscrit à la pose EXISTE chez le candidat. Quand la version est inconnue,
 # il n'y a rien à confronter, et le nom reste le seul critère disponible.
 pose_pour_piste=$(grep '^# version-noyau:' "$empreintes" | cut -d' ' -f3)
-for piste in "${NOYAU_METHODE:-}" "$enregistre" "$cible/../structure_projet" "$cible/../methodo"; do
+for piste in "${NOYAU_METHODE:-}" "$enregistre" "$cible/../structure_projet" "$cible/../methodo" \
+             "$principal/../structure_projet" "$principal/../methodo"; do
     [ -n "$piste" ] || continue
     # Le même piège qu'à l'installateur : dans un worktree et dans un sous-module, .git est un
     # FICHIER. Tester « -d .git » rejetait toutes les pistes, et le retard n'était jamais
@@ -137,6 +165,7 @@ actuelle=""
 # voit pas sur la copie distante, et le retard sur elle serait tu.
 reference=""
 ouverte=""
+installer=""
 if [ -n "$source_depot" ]; then
     for ref in "$(git -C "$source_depot" symbolic-ref -q refs/remotes/origin/HEAD 2>/dev/null)" \
                refs/remotes/origin/main refs/remotes/origin/master refs/heads/main refs/heads/master; do
@@ -156,6 +185,10 @@ if [ -n "$source_depot" ]; then
     # L'installateur pose la branche ouverte. Si elle n'a pas le noyau du repère, le remède affiché
     # ne lèverait pas l'alerte.
     ouverte=$(git -C "$source_depot" log -1 --format=%H HEAD -- noyau 2>/dev/null || echo "")
+    # Le remède donne le chemin réel du noyau, et vise le dossier principal : posé dans un
+    # worktree, le noyau repartirait avec lui.
+    # Cité, pour qu'un chemin à espace se colle tel quel.
+    installer="$(printf '%q' "$(cd "$source_depot" 2>/dev/null && pwd -P || echo "$source_depot")/installer.sh") $(printf '%q' "$principal")"
 fi
 
 # UNE POSE SANS VERSION NE SE COMPARE PAS. Vide, elle ferait lire « ..repère » comme
@@ -163,24 +196,45 @@ fi
 a_jour=""
 if [ -n "$actuelle" ] && { [ -z "$pose" ] || [ "$pose" = "inconnue" ]; }; then
     echo "⚠️  RETARD NON VÉRIFIÉ — .noyau-empreintes ne note pas la version posée." >&2
-    echo "    La régénérer : bash <noyau>/installer.sh $cible" >&2
+    echo "    La régénérer : bash $installer" >&2
 elif [ -z "$actuelle" ]; then
     echo "⚠️  RETARD NON VÉRIFIÉ — le dépôt du noyau est introuvable." >&2
     echo "    Cherché, dans l'ordre : la variable NOYAU_METHODE, le chemin enregistré à la pose," >&2
-    echo "    puis ../structure_projet et ../methodo à côté du projet." >&2
+    echo "    puis ../structure_projet et ../methodo à côté du projet et de son dossier principal." >&2
     echo "    Le bricolage, lui, a bien été vérifié ci-dessus." >&2
 elif [ "$pose" = "$actuelle" ]; then
+    a_jour=1
+# LE RETARD SE JUGE SUR LE CONTENU, PAS SUR LES COMMITS. Un changement suivi de son retour en
+# arrière, ou une fusion qui ne garde pas les commits, laisse le même noyau. Le contrôle criait
+# pourtant « RETARD » à chaque commit, et bloquait sous --strict. Relevé par deux revues le
+# 2026-11-07. L'arbre noyau/ de la pose égal à celui du repère vaut « à jour ».
+elif arbre_pose=$(git -C "$source_depot" rev-parse -q --verify "$pose:noyau" 2>/dev/null) && \
+     [ -n "$arbre_pose" ] && \
+     [ "$arbre_pose" = "$(git -C "$source_depot" rev-parse -q --verify "$actuelle:noyau" 2>/dev/null)" ]; then
     a_jour=1
 else
     # Un noyau posé plus récent que le repère n'est pas en retard. Seuls comptent les commits du
     # noyau que le repère a et que la pose n'a pas. Le même avertissement disait « 0 version
     # d'écart » sur un projet en avance.
-    retard=$(git -C "$source_depot" rev-list --count "$pose..$actuelle" -- noyau 2>/dev/null || echo "?")
-    if [ "$retard" = "0" ]; then
+    retard=$(git -C "$source_depot" rev-list --count "$pose..$actuelle" -- noyau 2>/dev/null) || retard=""
+    if [ -z "$retard" ]; then
+        # UN RETARD INCALCULABLE N'EST PAS UN RETARD. Le script écrivait « ? version(s) d'écart »,
+        # bloquait sous --strict et sautait le périmètre sans le dire. Relevé par une revue le
+        # 2026-11-07.
+        echo "⚠️  RETARD NON VÉRIFIÉ — git n'a pas su compter l'écart entre ${pose:0:8} et ${actuelle:0:8}." >&2
+        echo "    Le périmètre des empreintes n'a donc pas été comparé non plus." >&2
+    elif [ "$retard" = "0" ]; then
         a_jour=1
     else
         echo "⚠️  RETARD — le projet porte le noyau ${pose:0:8}, le noyau est à ${actuelle:0:8}." >&2
-        echo "    $retard version(s) d'écart. Mettre à jour : bash <noyau>/installer.sh $cible" >&2
+        echo "    $retard version(s) d'écart. Mettre à jour : bash $installer" >&2
+        # Des empreintes suivies dans un worktree lié ne bougent qu'avec sa branche. La pose
+        # faite au dossier principal n'y arrive que par une fusion. Relevé par la revue de la
+        # 111, le 2026-11-19.
+        if [ -n "$lie" ] && [ "$empreintes" = "$cible/.noyau-empreintes" ] && \
+           git -C "$cible" ls-files --error-unmatch .noyau-empreintes >/dev/null 2>&1; then
+            echo "    Ce worktree suit ses propres empreintes : y fusionner ensuite la pose commitée." >&2
+        fi
         [ -n "$reference" ] || echo "    Repère : la branche ouverte du noyau, faute de branche principale." >&2
         if [ -n "$reference" ] && [ "$ouverte" != "$actuelle" ]; then
             echo "    Avant, ouvrir le dossier du noyau sur ${reference#refs/*/} à jour : l'installateur" >&2
@@ -224,7 +278,7 @@ if [ -n "$source_depot" ] && [ -n "$a_jour" ]; then
         echo "❌ HORS PÉRIMÈTRE — ces fichiers du noyau ont été sortis des empreintes :" >&2
         printf '%b\n' "$absentes" >&2
         echo "   Plus rien ne les surveille. Le fichier d'empreintes ne s'édite pas à la main," >&2
-        echo "   il se régénère : bash <noyau>/installer.sh $cible" >&2
+        echo "   il se régénère : bash $installer" >&2
         fail=1
     fi
 fi

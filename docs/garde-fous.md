@@ -103,6 +103,8 @@ chemin inattendu.
 | `scripts/garde-questions-illisibles.sh` | un questionnaire publié ou envoyé à l'admin dont une question à choisir n'a pas de scène, ou dont un titre, un « quand » ou une scène porte un sigle, un fichier, du code ou un nom d'outil | refuse l'appel d'outil |
 | `scripts/garde-lecture-a-froid.sh` | un questionnaire publié ou envoyé à l'admin qu'aucune lecture à froid n'a lu depuis son dernier message et depuis sa dernière retouche, contre la règle « La lecture à froid avant de publier » | refuse l'appel d'outil |
 | `scripts/garde-revue-de-conception.sh` | un questionnaire à choix publié ou envoyé à l'admin qu'aucune revue de conception n'a jugé depuis son dernier message et depuis sa dernière retouche, contre la règle « La revue de conception avant la lecture à froid » | refuse l'appel d'outil |
+| `scripts/garde-generations-montrees.sh` | une image de Pixel Lab générée et jamais montrée à l'admin, gardée ou écartée | bloque la fin du tour |
+| `scripts/garde-dessin-agent.sh` | un tracé de l'agent posé à côté d'une image, toile, forme SVG ou ImageDraw, sans la mention « Dessiné par l'agent : » et sa raison | refuse l'appel d'outil |
 
 ### Le contrôle du noyau
 

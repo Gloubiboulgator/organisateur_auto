@@ -26,14 +26,19 @@
     dans ses mots. Ni sigle, ni nom de fichier, ni nom de code, qui restent dans les sources.
     Le garde scripts/garde-questions-illisibles.sh le vérifie, avec le titre et le « quand ».
   - image : {src, alt, legende}, obligatoire pour une question sur ce qui se voit. La capture
-    ou la maquette, en data: URI ou en fichier publié à côté de la page.
+    de l'existant, en data: URI ou en fichier publié à côté de la page.
+  - sansEcran : la raison, en douze signes au moins, pour une question à choix qui n'a rien à
+    voir. Elle dispense ses options de maquette, sauf si la question porte sa capture.
   - quand : ce que la réponse change, et où on le verra. Dit concrètement.
   - contexte : des paragraphes, assez pour trancher sans relire l'échange.
   - qui : facultatif, {nom, role, lettre}, pour un texte dit par quelqu'un.
   - lignes, etiquettes, note : facultatifs, un texte à valider, montré en entier.
-  - options : trois réponses défendables, {code, titre, detail, gagneSi}. gagneSi dit dans quel
-    cas l'option gagne, affiché « Gagne si … » sous elle. Une option qui ne peut pas le dire est
-    un leurre. Sans reco, la question devient une validation, et options vaut VALIDER.
+  - options : trois réponses défendables, {code, titre, detail, gagneSi, image}. gagneSi dit dans
+    quel cas l'option gagne, affiché « Gagne si … » sous elle. Une option qui ne peut pas le dire
+    est un leurre. image, {src, alt}, est la maquette de l'option, posée sur l'écran réel, sauf
+    question marquée sansEcran. Ni la capture de la question, ni l'image d'une autre option.
+    Un clic l'agrandit, sans cocher l'option. Le garde scripts/garde-options-sans-cas.sh vérifie gagneSi et
+    image. Sans reco, la question devient une validation, et options vaut VALIDER.
   - reco, pourquoi : la recommandée, et sa raison, qui dit aussi ce que valent les autres.
   - sources : {ref, cit, nom, url}. La citation est mot pour mot, le lien ouvre le fichier.
   Chaque chiffre porte son échelle, en euros, en durée ou en parties jouées.
@@ -137,6 +142,10 @@ button:focus-visible,textarea:focus-visible,a:focus-visible,.opt:has(input:focus
 .opt b{font:1.05rem var(--f-titre)}
 .opt .d{font-size:.95rem;color:var(--doux)}
 .opt .g{font-size:.88rem;border-top:1px dotted var(--trait);padding-top:6px}
+.opt img{max-width:100%;height:auto;border:1px solid var(--trait);border-radius:8px;cursor:zoom-in}
+#agrandie{max-width:96vw;max-height:96vh;padding:0;border:0;background:transparent}
+#agrandie::backdrop{background:rgba(0,0,0,.75)}
+#agrandie img{display:block;max-width:96vw;max-height:92vh;cursor:zoom-out}
 .opt .g::before{content:"Gagne si · ";font-weight:700;color:var(--accent)}
 .pastille{align-self:flex-start;font:700 .68rem var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--papier);background:var(--reco);border-radius:999px;padding:2px 8px}
 .outils{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
@@ -201,6 +210,9 @@ const VALIDER = [
 const PARTIES = [
   {id:"p1", titre:"Première étape du sujet", texte:"Ce que cette partie tranche, en une phrase."},
   {id:"p2", titre:"Deuxième étape", texte:"Ce que cette partie tranche."}];
+// La maquette d'exemple, un cadre à remplacer par la capture de l'écran réel modifié. Laissée
+// telle quelle, le garde des options la compte pour une absence.
+const MAQUETTE_EXEMPLE = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120"><rect width="200" height="120" fill="#eee" stroke="#999"/><text x="100" y="65" font-size="14" text-anchor="middle" fill="#555">Maquette de l\u2019option</text></svg>');
 const QUESTIONS = [
   {id:"Q1", partie:"p1", titre:"Exemple de question, à remplacer",
    scene:"Le moment où l'admin rencontre la chose, dans ses mots. Tu ouvres le jeu, tu vois ceci, et il se passe cela.",
@@ -208,9 +220,12 @@ const QUESTIONS = [
    contexte:["Le contexte, assez pour trancher sans relire l'échange.",
              "Un second paragraphe si besoin."],
    options:[
-     {code:"A", titre:"Première réponse", detail:"Ce qu'elle implique, et ce qu'elle coûte.", gagneSi:"le cas concret où cette réponse est la bonne."},
-     {code:"B", titre:"Deuxième réponse", detail:"Ce qu'elle implique, et ce qu'elle coûte.", gagneSi:"le cas concret où cette réponse est la bonne."},
-     {code:"C", titre:"Troisième réponse", detail:"Ce qu'elle implique, et ce qu'elle coûte.", gagneSi:"le cas concret où cette réponse est la bonne."}],
+     {code:"A", titre:"Première réponse", detail:"Ce qu'elle implique, et ce qu'elle coûte.", gagneSi:"le cas concret où cette réponse est la bonne.",
+      image:{src:MAQUETTE_EXEMPLE, alt:"L'écran réel, avec la réponse A posée dessus."}},
+     {code:"B", titre:"Deuxième réponse", detail:"Ce qu'elle implique, et ce qu'elle coûte.", gagneSi:"le cas concret où cette réponse est la bonne.",
+      image:{src:MAQUETTE_EXEMPLE, alt:"L'écran réel, avec la réponse B posée dessus."}},
+     {code:"C", titre:"Troisième réponse", detail:"Ce qu'elle implique, et ce qu'elle coûte.", gagneSi:"le cas concret où cette réponse est la bonne.",
+      image:{src:MAQUETTE_EXEMPLE, alt:"L'écran réel, avec la réponse C posée dessus."}}],
    reco:"B",
    pourquoi:"La raison de la recommandation, et ce que valent les deux autres.",
    sources:[{ref:"Q3", cit:"La phrase exacte de la note qui fonde la question.",
@@ -238,6 +253,17 @@ let db = null;
 const minuteurs = {};
 const retentes = {};
 
+// Une maquette se lit en grand, par-dessus la page. Un clic n'importe où la referme.
+function agrandir(image){
+  let d = document.getElementById("agrandie");
+  if (!d) {
+    d = el("dialog", {id:"agrandie"});
+    d.addEventListener("click", () => d.close());
+    document.body.append(d);
+  }
+  d.replaceChildren(el("img", {src:image.src, alt:image.alt || ""}));
+  d.showModal();
+}
 function el(tag, attrs, ...enfants){
   const n = document.createElement(tag);
   for (const [k,v] of Object.entries(attrs || {})) {
@@ -302,6 +328,12 @@ function carte(q){
     if (choix && o.code === q.reco) lab.append(el("span", {class:"pastille", text:"Recommandé"}));
     lab.append(el("b", {text:choix ? o.code + ". " + o.titre : o.titre}));
     if (choix) lab.append(el("span", {class:"d", text:o.detail}));
+    if (choix && o.image) {
+      const im = el("img", {src:o.image.src, alt:o.image.alt || "", loading:"lazy", title:"Agrandir la maquette"});
+      // Dans le label, un clic cocherait l'option : il agrandit la maquette, sans rien cocher.
+      im.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); agrandir(o.image); });
+      lab.append(im);
+    }
     if (choix && o.gagneSi) lab.append(el("span", {class:"g", text:o.gagneSi}));
     fs.append(lab);
   });

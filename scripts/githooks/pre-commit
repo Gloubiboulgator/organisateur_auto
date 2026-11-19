@@ -44,12 +44,23 @@ ln -s "$(git rev-parse --absolute-git-dir)" "$scene/.git"
 # rouvrait le trou même que cette scène ferme : un fichier retiré de l'index mais encore sur le
 # disque redevenait non suivi, était recopié, et le commit qui SUPPRIME un fichier du noyau
 # passait le contrôle des manquants. On écarte donc ce que HEAD connaît encore.
-git ls-files -z --others --exclude-standard | while IFS= read -r -d '' f; do
-    [ -e "$f" ] || continue
-    git cat-file -e "HEAD:$f" 2>/dev/null && continue   # sa suppression est indexée
-    mkdir -p "$scene/$(dirname "$f")"
-    cp -p "$f" "$scene/$f" 2>/dev/null || true
-done
+#
+# UNE PASSE POUR TOUTE LA LISTE, PAS QUATRE PROCESSUS PAR FICHIER. La boucle lançait git, mkdir,
+# dirname et cp pour chacun. Sur 35 991 fichiers non suivis, le hook est resté près de six
+# minutes sur cette seule étape, vu par ps le 2026-11-06 dans un projet équipé. La liste se
+# trie, perd ce que HEAD connaît par comm, puis se copie d'un seul tar. Un dépôt imbriqué, que
+# git liste en « dossier/ », reste dehors comme avant, où cp sans -r le sautait.
+# Un lien non suivi vers un dossier reste dehors lui aussi. Sans --no-recursion, tar descendait
+# dans la cible, un montage réseau ou un lien vers « .. » compris. Avec, il en laisse un dossier
+# vide, que find retire : l'index ne pose jamais de dossier vide. Relevé par la revue de la 111,
+# le 2026-11-19.
+connus=$(mktemp) && autres=$(mktemp) || { echo "pre-commit : liste jetable impossible à créer." >&2; exit 1; }
+trap 'rm -rf "$scene" "$connus" "$autres"' EXIT
+git ls-tree -r -z --name-only HEAD 2>/dev/null | LC_ALL=C sort -z > "$connus"
+git ls-files -z --others --exclude-standard | LC_ALL=C sort -z > "$autres"
+LC_ALL=C comm -z -23 "$autres" "$connus" | grep -zv '/$' \
+    | tar -c --null --dereference --no-recursion -T - -f - 2>/dev/null | tar -x -p -C "$scene" -f - 2>/dev/null || true
+find "$scene" -mindepth 1 -type d -empty -delete 2>/dev/null || true
 if [ -f .noyau-empreintes ] && [ ! -f "$scene/.noyau-empreintes" ]; then
     cp -p .noyau-empreintes "$scene/.noyau-empreintes"
 fi
