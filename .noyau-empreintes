@@ -1,7 +1,8 @@
 # Empreintes des fichiers posés par installer.sh. NE PAS ÉDITER À LA MAIN.
-# version-noyau: f85c3a70c67735f3743463abcd94724293792bd0
+# version-noyau: 6bd25cfbea11653bd9460e158767c0a100b88226
 # source-noyau: <chemin masqué, il portait un prénom>
-13e0b5d6703f0400c3b5d0095366b9b073ff9a4bf8b2484da58bdee477ebc663  CLAUDE.md
+f6a9a785e6618808adac04f6972321c12125b89d99ff3910ee3b8aca1f768cfb  CLAUDE.md
+948af56df4a39982e19b1a7d9a5dae16cc020e0e9fa7d171166bcd4dd16b5e55  .claude/rules/du-besoin-a-la-spec.md
 032a5e615085e9528c52ffa4fb292b74b0bb762b59928ff98ef113a5c5d24f34  .claude/rules/montrer-le-produit.md
 edc59b41d31bddb35a2a0c2f35f959b45148ece754a257397f354ab85228f5e8  .claude/rules/mots-du-produit.md
 818851997bef8a0bd77ec1b7c8d3bbb7dd642d438d4e8de0bc76c98c8836426b  .claude/rules/ton-des-echanges.md
@@ -39,7 +40,7 @@ ed6301334b82dbf3d08436622df1f87d01a1564957f1c6ce690ab8ef6650342f  .claude/skills
 75fab61b36590c665f80423777b8c628883e4d8389c3d7a3f7b38af809de3802  .claude/skills/passe-parcours/references/consigne-modelisation.md
 3b063d24570628431bc062aea6a3e864d029b76a775b14198301db95465d0503  .claude/skills/passe-parcours/references/consigne-testeur.md
 611960580c0b5068fb8a97de4a419eb2cd6f004efb4cfceec10e92d3322cd430  .claude/skills/passe-parcours/references/gabarit-parcours.html
-0d55037351ad5eb776d97aabfa7f05097f8ca29cc90eb6ac1e5970987d6f628a  .claude/skills/passe-parcours/references/grille-de-synthese.md
+8ae0228014429a80cec1e507e53407052a8be438d75f76352e7571228999e4ab  .claude/skills/passe-parcours/references/grille-de-synthese.md
 6170069f8bf2cf0fe4d5e779b0f9ffd06bd38f3cadd0b69a70f878c87cfc297b  .claude/skills/passe-parcours/references/rapport-testeur.schema.json
 bb7e8c7e9198bdd2cc4efc2aea5e93034314ca7b0690c8356d8902105fd55d1f  .claude/skills/passe-parcours/references/temperaments.txt
 c4961d61a1d9410660f32f911a46825d4813d4ed347c4ffb38ac26a7185f572e  .claude/skills/passe-parcours/scripts/essai-passe-parcours.sh
@@ -57,9 +58,10 @@ bb733fa2e94353bdfc83bf1da862bc984827e58fa704ccebe3c4999d3d1c7646  .claude/skills
 2008f28ffd8f57c23e190d64eb9054b8987ab16aeeac2c6ebe43a9f262fe2414  .claude/skills/ramasser-pr/references/tri-des-constats.md
 5209350943fd1ebd431214da3577a5bce317d7c6ac36cdf2368bf32bca71fb35  .claude/skills/ramasser-pr/SKILL.md
 d3085d270d5ab6393054237ecbd44427913ce53fa2065527461ff0de865f6a54  docs/chantiers-a-plusieurs-agents.md
+3a38cebc9e172bd328c07b9db029b93ad8c6e63977c080cf66fb3bf63cd3bdfb  docs/du-besoin-a-la-spec.md
 d84d60fa193e4a210c4e7e28028bcbd9cf74c23dc613bc8987b97916ea2d2ddd  docs/etalons-de-redaction.md
 451e4654794b3b228e0a47ea4567b60ed3e436a7a752b19f1361882c45a4eb9f  docs/montrer-le-produit.md
-33c6bfc30a3a8f07baede36273b91408b1b70a24ec713c25980dec6640812c2c  docs/systeme-documentaire.md
+180f0a3d3d83e0a966efc22c6a5a86146038b20884ca779edc12ee2fc9ec5065  docs/systeme-documentaire.md
 e2030c5d24867c95fb39c035e704152bf9e94730d5138aff3f6367862906dd05  docs/ton-des-echanges.md
 9fe37510d0974da5930709c8ade861fce8cfaf13a36dc3722aec167e5f14e83f  docs/voir-avant-de-livrer.md
 b8ef512e7ec7399e49495eb243dade58adf25f864bc2b40ccd6239ca59973a79  modeles/essai-garde-perte-seche.sh

@@ -35,6 +35,20 @@ signaler comme tel.
   est un problème de taille de cible, pas de compréhension.
 - La durée de pose, quand le testeur se plaint d'une lenteur. Un `"vide"` sur une capture nette
   qui montre un écran posé presque nu est une limite du pilote, pas une lenteur de l'app.
+- Une solution proposée, ce qui changerait à l'écran pour que le testeur s'en sorte. Deux
+  pistes, quand les champs ne départagent pas deux causes.
+
+**Chaque problème vu propose une solution.** Un constat seul laisse l'admin refaire l'analyse.
+La solution se tire de la capture, du commentaire et des champs ci-dessus, jamais du code.
+Elle dit ce qui change pour qui utilise l'app, un libellé, une place, une taille ou une étape.
+
+**Une limite du pilote n'est pas un problème de l'app.** Elle ne reçoit aucune solution. Elle
+va au bloc « Ce qui n'a pas pu être jugé », jamais parmi les problèmes.
+
+**La solution s'écrit à part du constat**, sous « Proposé ». L'admin distingue ainsi ce qu'un
+testeur a vécu de ce que la synthèse suggère.
+
+> Décidé par l'admin le 2026-11-23 : « chaque problème vu doit proposer une solution ».
 
 **Ce qu'aucun testeur n'a atteint.** Les écrans du parcours sans aucune capture. Ce n'est pas un
 défaut en soi. C'est la part de l'app que ce run n'a pas jugée.
@@ -45,8 +59,8 @@ au premier écran, puis à la fin.
 ## Les blocs de l'artefact, dans cet ordre
 
 1. **Le verdict**, en une phrase. Combien de testeurs ont compris l'app, combien ont abandonné.
-2. **Les problèmes**, triés par testeurs touchés, puis par gravité. Capture et citation pour
-   chacun.
+2. **Les problèmes**, triés par testeurs touchés, puis par gravité. Capture, citation et solution
+   proposée pour chacun.
 3. **Le logigramme de la phase 1**, coloré. Un écran atteint par tous, par certains, par aucun.
    Une marque là où un testeur a abandonné.
 4. **La compréhension**, la fiche face aux phrases des testeurs.
@@ -54,8 +68,8 @@ au premier écran, puis à la fin.
 6. **Chaque testeur**, son fil de captures avec le commentaire de chaque geste, replié par
    défaut. Le fil montre les captures nettes. Une lecture y montre la zone lue, prise dans
    `captures/`.
-7. **Ce qui n'a pas pu être jugé.** Testeurs sans rapport, écrans jamais atteints, refus de
-   permission, coût total du run.
+7. **Ce qui n'a pas pu être jugé.** Testeurs sans rapport, écrans jamais atteints, limites du
+   pilote, refus de permission, coût total du run.
 8. **La limite du test**, en une ligne. Des modèles et non des humains, qui sous-estiment la
    confusion d'une personne pressée.
 
@@ -64,8 +78,13 @@ local. L'admin juge l'écran, pas le flou que voyait le testeur.
 
 ## Ce que la synthèse ne fait pas
 
-**Elle ne corrige rien.** Un problème trouvé se range dans le backlog du projet, si l'admin le
-demande après lecture.
+**Elle propose, elle ne corrige rien.** Si l'admin le demande après lecture, un problème trouvé
+se range dans le backlog du projet. Sa solution proposée l'accompagne, comme une piste à
+trancher. Elle ne vaut ni décision de l'admin ni maquette validée.
 
-**Elle n'invente aucune cause.** Le testeur dit ce qu'il a vécu. Une cause dans le code se
-cherche après, et s'écrit séparément du constat.
+**Elle n'invente aucune cause dans le constat.** Le testeur dit ce qu'il a vécu. Une cause dans
+le code se cherche après, et s'écrit séparément du constat.
+
+**La cause d'une solution est une hypothèse.** Sous « Proposé », chaque piste nomme la cause
+d'écran qu'elle suppose. Ce peut être une cible trop petite, un libellé ou un ordre. Quand les
+champs ne départagent pas deux causes, chaque piste dit la sienne.

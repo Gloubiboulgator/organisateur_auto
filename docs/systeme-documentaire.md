@@ -55,6 +55,7 @@ peut pas diverger en silence.
 | montrer le produit à l'admin qui ne comprend pas | [`montrer-le-produit.md`](montrer-le-produit.md) | `.claude/rules/` en porte la copie |
 | mener un chantier de dix agents ou plus | [`chantiers-a-plusieurs-agents.md`](chantiers-a-plusieurs-agents.md) | `CLAUDE.md` y renvoie |
 | voir le produit avant de le dire prêt | [`voir-avant-de-livrer.md`](voir-avant-de-livrer.md) | `.claude/rules/` en porte la copie |
+| aller du besoin à la spec, pour un produit puis pour chaque brique | [`du-besoin-a-la-spec.md`](du-besoin-a-la-spec.md) | `.claude/rules/` en porte la copie |
 | ce qui protège le projet | [`garde-fous.md`](garde-fous.md) | rien ne le recopie |
 | ce que le projet apprend à qui le découvre | le guide HTML, rédigé sous `guide/` | ses faits sont lus dans le code |
 
