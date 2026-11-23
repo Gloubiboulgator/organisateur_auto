@@ -121,7 +121,7 @@ ni doc-lint, ni code-lint, ni le hook de fusion. `core.hooksPath`, `merge.ff` et
 
 ## Avant de coder, lever toute ambiguïté
 
-Le comportement attendu se spécifie sans zone grise, **avant de commencer ou de reprendre une brique**.
+Le comportement attendu se spécifie sans zone grise, **avant de commencer ou de reprendre une brique**. La spec part du besoin, par [`docs/du-besoin-a-la-spec.md`](docs/du-besoin-a-la-spec.md).
 
 - On ne code pas tant que la spécification ne décrit pas le comportement **observable**. Entrées,
   sorties, messages exacts envoyés à l'utilisateur, et traitement des cas limites.
