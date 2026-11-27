@@ -1,6 +1,7 @@
-# Un tempérament par ligne, donné au testeur de même rang quand l'option --temperaments est
-# posée. Ils varient la façon d'essayer, jamais ce que le testeur sait de l'app.
-Tu es pressé. Tu lis peu, tu touches ce qui saute aux yeux, et tu lâches vite si rien ne vient.
-Tu es curieux. Tu ouvres tout, tu lis les petites lignes, tu veux comprendre chaque écran.
-Tu es peu à l'aise avec un téléphone. Tu hésites, tu crains de casser quelque chose, tu relis.
-Tu es exigeant. Tu compares avec les applis que tu connais, et tu remarques ce qui cloche.
+# Un tempérament par ligne : son nom court, une barre, puis le texte que reçoit le testeur. Le nom
+# s'affiche dans la fenêtre de réglages, le texte seul part dans la consigne. Ils varient la façon
+# d'essayer, jamais ce que le testeur sait de l'app. Une ligne de plus en fait un choix de plus.
+Pressé | Tu es pressé. Tu lis peu, tu touches ce qui saute aux yeux, et tu lâches vite si rien ne vient.
+Curieux | Tu es curieux. Tu ouvres tout, tu lis les petites lignes, tu veux comprendre chaque écran.
+Peu à l'aise | Tu es peu à l'aise avec un téléphone. Tu hésites, tu crains de casser quelque chose, tu relis.
+Exigeant | Tu es exigeant. Tu compares avec les applis que tu connais, et tu remarques ce qui cloche.

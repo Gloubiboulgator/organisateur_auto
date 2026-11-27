@@ -27,13 +27,13 @@ sans l'admin, avec plusieurs testeurs à la fois. Il ne remplace pas un humain, 
 
 ## Quand il s'exécute
 
-Sur commande explicite seule. `/passe-parcours 4` lance quatre testeurs par plateforme. Sans
-nombre, il en lance trois.
+Sur commande explicite seule. `/passe-parcours 4` règle la fenêtre sur quatre testeurs par
+plateforme. Sans nombre, elle en propose trois.
 
 Quatre phases, et deux arrêts qui attendent l'admin.
 
 1. La modélisation du parcours, puis **l'arrêt de validation**.
-2. Les réglages et la fiche, puis **le go**.
+2. La fiche, puis la fenêtre de réglages, dont le bouton « Lancer » vaut **le go**.
 3. Les testeurs.
 4. La synthèse. Plus aucun arrêt entre le go et le rendu.
 
@@ -100,41 +100,77 @@ Ce qui reste introuvable se demande. Dès deux questions à l'admin, fiche compr
 dans un questionnaire, selon
 [`docs/ton-des-echanges.md`](../../../docs/ton-des-echanges.md).
 
-**La plateforme suit le projet.** Une app Android et un site se testent tous les deux, chacun
-avec son lot de testeurs. Les testeurs Android passent un par un, et ceux du web trois à la
-fois. Trois émulateurs ensemble ont saturé le PC de l'admin le 2026-11-16. Les testeurs ont pris
+**La plateforme suit le projet.** Une app Android se teste sur émulateur. Un site se teste
+dans les navigateurs cochés, chaque plateforme avec son lot de testeurs. Par défaut, Android
+et Chrome. Les neuf plateformes sont décrites dans
+[`references/reglages-du-run.md`](references/reglages-du-run.md).
+
+Les testeurs Android passent un par un, et ceux d'un navigateur trois à la fois. Trois émulateurs ensemble ont saturé le PC de l'admin le 2026-11-16. Les testeurs ont pris
 les fenêtres système et les lenteurs pour des défauts de l'app.
 
-**Les réglages tranchés par le skill**, que l'admin peut contester.
+### La fenêtre de réglages
 
-- Le modèle des testeurs, `sonnet`, effort `medium`. Opus coûte plusieurs fois plus par capture.
-- Quarante gestes au plus par testeur, et deux dollars au plus, par `--budget-max`.
-- Pas de tempéraments. L'option `--temperaments` en donne un à chaque testeur, pris dans
-  [`references/temperaments.txt`](references/temperaments.txt). Elle varie la façon d'essayer,
-  jamais ce que le testeur sait.
+**Chaque run se règle dans une fenêtre**, demandée par l'admin le 2026-11-27 sur une maquette
+qu'il a validée. Une fois la fiche obtenue, **lancer en arrière-plan**
+[`scripts/regler.py`](scripts/regler.py), avec `--sortie <resultats>/reglages.json`. Il ouvre
+la page dans le navigateur et dit son adresse. La session attend sa fin, sans sonder.
+
+**La page montre chaque réglage**, avec sa valeur par défaut et une ligne qui l'explique. Un
+point marque ce qui s'écarte du défaut. Le pied calcule la dépense maximale, nombre de testeurs
+fois plafond par testeur.
+
+- Le run. Les plateformes, les testeurs par plateforme, et combien tournent en parallèle.
+- Chaque testeur. Le modèle et sa réflexion, les gestes et la dépense au plus, et s'il s'arrête
+  une fois servi ou fait le tour de l'app.
+- Les tempéraments, aucun, au hasard, ou un par testeur. Ils viennent de
+  [`references/temperaments.txt`](references/temperaments.txt), où une ligne de plus fait un
+  choix de plus. Ils varient la façon d'essayer, jamais ce que le testeur sait.
+- Ce que le testeur perçoit. Le coup d'œil flou et la part lisible, le doigt imprécis, la
+  mesure du chargement. Chacun s'éteint ou se règle.
+- Comment il se comporte. Les quatre comportements de la section plus bas.
+
+**Les défauts vivent dans `DEFAUTS`**, en tête de
+[`scripts/lancer_testeurs.py`](scripts/lancer_testeurs.py), leur seule source. La page les
+reçoit de là, avec les bornes de chaque nombre.
+
+Ce sont les réglages d'avant la fenêtre, sauf Chrome à la place de Chromium. `sonnet` en effort
+`medium`, quarante gestes et deux dollars au plus. Les trois appuis humains allumés, ni tempérament ni comportement ajouté.
+
+**Un réglage hors bornes se refuse**, dans la page avec sa raison, puis à nouveau par le
+lanceur. Le nombre de l'argument `/passe-parcours 4` se reporte dans la page avant qu'elle
+parte.
+
+**Si la page ne s'ouvre pas**, la session donne son adresse à l'admin. Sans réponse en une heure,
+`regler.py` s'arrête sans rien écrire.
 
 **Nommer l'outillage**, sans l'installer. Un outil absent arrête le lanceur, qui le nomme.
 
 - Toujours, `ffmpeg` avec son `ffprobe`, et le binaire `claude`. Celui de l'appli de bureau se
   trouve seul. Un autre se désigne par `PASSE_PARCOURS_CLAUDE`.
-- Pour Android, le SDK avec `adb`, l'émulateur et un téléphone virtuel. `ANDROID_HOME` le
+- Pour Android et Chrome Android, le SDK avec `adb`, l'émulateur et un téléphone virtuel.
+  Chrome Android veut Chrome installé dans ce téléphone, sinon le lanceur le dit. `ANDROID_HOME` le
   désigne s'il n'est pas sous `~/Android/Sdk`.
-- Pour le web, Node et le paquet `playwright`, que `--node-path` désigne.
+- Pour le web, Node et le paquet `playwright`, que `--node-path` désigne. Puis chaque
+  navigateur coché, ouvert une fois pour essai. Un absent se nomme avec sa commande, comme
+  `npx playwright install firefox`.
 
-**Le go.** Rien ne part avant. Après lui, plus aucune question jusqu'au rendu.
+**Le go**, c'est le bouton « Lancer » de la fenêtre. Rien ne part avant. Après lui, plus
+aucune question jusqu'au rendu.
 
 ## Phase 3. Les testeurs
 
 **Écrire la fiche** dans le dossier de résultats, puis **lancer**
-[`scripts/lancer_testeurs.py`](scripts/lancer_testeurs.py) en arrière-plan, une fois par
-plateforme, chacune dans son sous-dossier neuf, `android/` ou `web/`. Son en-tête donne la
-commande exacte. La session attend la notification de fin,
-sans sonder.
+[`scripts/lancer_testeurs.py`](scripts/lancer_testeurs.py) en arrière-plan. Il part une fois par
+plateforme cochée, chacune dans son sous-dossier neuf, comme `android/` ou `firefox/`.
+
+Il reçoit `--reglages <resultats>/reglages.json`, et son en-tête donne la commande exacte. La
+session attend la notification de fin, sans sonder. Chaque sous-dossier garde ses réglages,
+tempérament de chaque testeur compris.
 
 Chaque testeur vit ainsi.
 
 - Un appareil neuf. Un émulateur en lecture seule, l'app installée et ses données effacées. Ou
-  un Chromium au profil vide.
+  un navigateur au profil vide, qu'un serveur Node garde ouvert tout le test.
 - Une session `claude -p` née dans un dossier neutre, sans réglages, sans mémoire, sans
   serveurs d'outils. Le mode `dontAsk` refuse tout ce qui n'est pas permis.
 - Deux droits. Lancer `./piloter`, et lire son propre dossier, donc ses coups d'œil et ses
@@ -165,7 +201,8 @@ sans rien toucher. Il rend, nette, la zone entre les deux coins, lus sur le dern
 Ce geste compte dans le plafond de gestes, a son numéro, sa capture et sa ligne de journal.
 
 - Une zone de plus d'un quart de l'écran se refuse. Le message dit « tu ne peux lire qu'un
-  quart de l'écran à la fois ». Sans cette borne, un seul geste rendrait l'écran entier.
+  quart de l'écran à la fois ». Sans cette borne, un seul geste rendrait l'écran entier. La
+  fenêtre de réglages change cette part, et le message la suit.
 - Une zone hors de l'écran, ou vide, se refuse aussi, avec le message d'aide.
 - La réponse du pilote dit, après chaque coup d'œil, que le petit texte ne s'y lit pas, et
   rappelle la commande `lire`.
@@ -208,7 +245,8 @@ vide qui dure. Le testeur, lui, réfléchit entre deux gestes, et l'app a toujou
 regarde.
 
 - Après `toucher`, `glisser`, `taper`, `retour` et `relancer`, le pilote photographie l'écran en
-  boucle. Il s'arrête quand l'écran n'a plus bougé depuis une seconde, ou à dix secondes.
+  boucle. Il s'arrête quand l'écran n'a plus bougé depuis une seconde, ou à dix secondes par
+  défaut, le réglage `pose.max`.
 - Deux photos sont pareilles quand moins de 1 % de leurs points diffèrent, sur une image
   réduite en gris. Un curseur qui clignote ou l'heure qui change ne comptent donc pas.
 - La durée court jusqu'au milieu de deux demandes de photo, celle d'avant le dernier
@@ -224,7 +262,7 @@ regarde.
 - L'attente tourne dans `piloter.py` pour les deux plateformes. Côté web, le pilote Node agit,
   puis rend les photos qu'on lui demande. `retour` et `relancer` n'y attendent pas le
   chargement de la page, que l'attente mesure alors.
-- La durée entre au journal, en secondes, ou `"vide"` et `"bouge"` au bout de dix secondes.
+- La durée entre au journal, en secondes, ou `"vide"` et `"bouge"` au bout de l'attente.
   `voir`, `lire` et `attendre` photographient sans attendre ni mesurer. Le coup d'œil vient de
   la dernière photo.
 
@@ -251,6 +289,13 @@ d'écrans.
 commande qui le ramène. Côté Android, « L'app n'est plus au premier plan. ». Côté web, « Tu as
 quitté le site de départ. ». Il connaît `relancer` par l'aide, comme une personne connaît
 l'icône de son téléphone.
+
+### Quatre comportements de plus, éteints par défaut
+
+Le testeur peut retoucher un écran qui tarde, faire des fautes de frappe, avoir la mémoire
+courte, et être interrompu une fois. Retenus par l'admin le 2026-11-27, chacun s'allume dans la
+fenêtre. Leur mécanique et leurs limites vivent dans
+[`references/reglages-du-run.md`](references/reglages-du-run.md).
 
 ## Phase 4. La synthèse
 

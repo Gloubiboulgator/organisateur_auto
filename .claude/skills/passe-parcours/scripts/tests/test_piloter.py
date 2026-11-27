@@ -10,6 +10,7 @@ Le faux `adb` rend une vraie image PNG, que `ffmpeg` réduit pour de bon. Une im
 l'image ne prouverait rien sur la chaîne de capture.
 """
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -319,19 +320,113 @@ def lanceur():
     return module
 
 
-def test_la_consigne_ne_garde_aucun_champ_ni_le_preambule():
+def args_de_consigne(**changes):
+    """De quoi écrire la consigne d'un testeur, réglages par défaut sauf ce qui change."""
     module = lanceur()
+    reglages = module.completer(module.DEFAUTS, {"actions_max": 12, **changes})
 
     class Args:
-        plateforme, actions_max, temperaments = "android", 12, True
+        plateforme = "android"
         texte_fiche = "Une fiche.\nSur deux lignes."
+    Args.reglages = reglages
+    Args.temperaments_par_rang = ["", module.lire_temperaments()["Curieux"]]
+    return module, Args
 
-    texte = module.consigne(Args, 2)
+
+def consigne_avec(**changes):
+    module, args = args_de_consigne(**changes)
+    return module.consigne(args, 2)
+
+
+def test_la_consigne_ne_garde_aucun_champ_ni_le_preambule():
+    texte = consigne_avec()
     assert "{" not in texte and "}" not in texte
+    assert "<!--" not in texte and "###" not in texte
     assert "> Une fiche.\n> Sur deux lignes." in texte
     assert "12 gestes" in texte
     assert "lancer_testeurs.py" not in texte
     assert "curieux" in texte
+    assert "Curieux |" not in texte
+    # Les défauts gardent le texte d'avant les réglages.
+    assert "pour ce que promet sa fiche" in texte
+    assert "au plus un quart de l'écran" in texte
+    assert "combien de temps l'écran a mis" in texte
+    assert "\n\n\n" not in texte
+
+
+def test_la_consigne_suit_les_options_eteintes():
+    texte = consigne_avec(envie=False, flou={"actif": False}, pose={"actif": False})
+    assert "pour en faire le tour" in texte and "fait le tour de ce qui" in texte
+    assert "pour ce que promet sa fiche" not in texte
+    assert "coup d'œil" not in texte and "./piloter lire" not in texte
+    assert "combien de temps" not in texte
+    assert "\n\n\n" not in texte
+    assert "{" not in texte
+
+
+def test_la_memoire_courte_entre_dans_la_consigne():
+    assert "Tu ne retiens pas tout" not in consigne_avec()
+    assert "Tu ne retiens pas tout" in consigne_avec(memoire_courte={"actif": True})
+    assert "la moitié de l'écran" in consigne_avec(flou={"lecture_max": 50})
+
+
+# ── Les réglages ────────────────────────────────────────────────────────────────────────────
+
+
+def test_les_defauts_passent_la_verification():
+    module = lanceur()
+    assert module.verifier_reglages(module.completer(module.DEFAUTS, {})) == []
+
+
+@pytest.mark.parametrize("changes, motif", [
+    ({"nombre": 0}, "nombre"),
+    ({"budget_max": 50}, "budget_max"),
+    ({"doigt": {"mm": "deux"}}, "doigt.mm"),
+    ({"actions_max": True}, "actions_max"),
+    ({"modele": "gpt"}, "modele"),
+    ({"plateformes": []}, "plateformes"),
+    ({"plateformes": ["web"]}, "plateformes"),
+    ({"temperaments": {"mode": "choix", "choix": {"firefox-1": "Furieux"}}}, "Furieux"),
+])
+def test_un_reglage_hors_bornes_se_refuse(changes, motif):
+    module = lanceur()
+    fautes = module.verifier_reglages(module.completer(module.DEFAUTS, changes))
+    assert any(motif in f for f in fautes), fautes
+
+
+def test_chaque_navigateur_est_une_plateforme_avec_son_parallele():
+    """Les cinq navigateurs de Playwright, chacun cochable et réglé à part. Demandé le 2026-11-27."""
+    module = lanceur()
+    reglages = module.completer(module.DEFAUTS, {
+        "plateformes": ["chromium", "firefox", "webkit", "chrome", "msedge"],
+        "paralleles": {"webkit": 2}})
+    assert module.verifier_reglages(reglages) == []
+    assert reglages["paralleles"]["webkit"] == 2 and reglages["paralleles"]["firefox"] == 3
+    trop = module.completer(module.DEFAUTS, {"paralleles": {"msedge": 9}})
+    assert any("paralleles.msedge" in f for f in module.verifier_reglages(trop))
+
+
+def test_les_temperaments_au_hasard_ne_se_repetent_pas_avant_d_avoir_tous_servi():
+    module = lanceur()
+    reglages = module.completer(module.DEFAUTS, {"temperaments": {"mode": "hasard"}})
+    tires = module.attribuer_temperaments(reglages, "firefox", 4)
+    assert sorted(tires) == sorted(module.lire_temperaments().values())
+
+
+def test_les_temperaments_un_par_un_suivent_la_fenetre():
+    module = lanceur()
+    reglages = module.completer(module.DEFAUTS, {"temperaments": {
+        "mode": "choix", "choix": {"firefox-1": "Exigeant", "firefox-2": "Aucun",
+                                   "chromium-3": "Curieux"}}})
+    tires = module.attribuer_temperaments(reglages, "firefox", 3)
+    assert tires == [module.lire_temperaments()["Exigeant"], "", ""]
+
+
+def test_l_interruption_tombe_entre_le_quart_et_la_moitie():
+    module = lanceur()
+    reglages = module.completer(module.DEFAUTS, {"actions_max": 40})
+    for _ in range(50):
+        assert 10 <= module.options_du_pilote(reglages)["interruption_geste"] <= 20
 
 
 # ── Le lanceur ──────────────────────────────────────────────────────────────────────────────
@@ -339,7 +434,7 @@ def test_la_consigne_ne_garde_aucun_champ_ni_le_preambule():
 
 def test_un_dossier_de_sortie_existant_se_refuse(tmp_path):
     (tmp_path / "android").mkdir()
-    resultat = subprocess.run([sys.executable, str(LANCEUR), "android", "--nombre", "1",
+    resultat = subprocess.run([sys.executable, str(LANCEUR), "android",
                                "--fiche", str(tmp_path / "fiche.txt"),
                                "--sortie", str(tmp_path / "android"), "--apk", "x.apk",
                                "--paquet", "org.exemple.app", "--avd", "Telephone"],
@@ -506,6 +601,9 @@ def test_l_ancien_format_de_la_largeur_se_relit(banc):
 # Il donne la taille de sa page, garde les valeurs reçues, puis dit « fait ». À chaque ligne
 # « photo », il rend l'image suivante de la liste `ecrans-web`, la dernière restant. Sur « fin »,
 # il rend sa sortie JSON. La ligne `panne` le fait échouer.
+
+# Une photo peut se demander avant les valeurs. « retoucher » et « interrompre S » s'écrivent dans
+# le fichier `demandes`, et Node répond « fait ».
 FAUX_PILOTE_WEB = r"""
 const fs = require('fs'), path = require('path'), readline = require('readline');
 const ici = path.dirname(process.env.F5_PILOTE);
@@ -515,14 +613,25 @@ let n = 0;
 process.stdout.write('taille 1.5 412 915\n');
 (async () => {
   const lignes = readline.createInterface({ input: process.stdin })[Symbol.asyncIterator]();
-  fs.writeFileSync(path.join(ici, 'valeurs-recues'), (await lignes.next()).value);
-  process.stdout.write('fait\n');
-  for (;;) {
-    const { value: ligne, done } = await lignes.next();
-    if (done || ligne !== 'photo') break;
+  const photo = () => {
     const png = fs.readFileSync(path.join(ici, ecrans[Math.min(n++, ecrans.length - 1)] + '.png'));
     process.stdout.write(`${png.length}\n`);
     process.stdout.write(png);
+  };
+  let { value: reponse } = await lignes.next();
+  while (reponse === 'photo') { photo(); ({ value: reponse } = await lignes.next()); }
+  fs.writeFileSync(path.join(ici, 'valeurs-recues'), reponse);
+  process.stdout.write('fait\n');
+  for (;;) {
+    const { value: ligne, done } = await lignes.next();
+    if (done) break;
+    if (ligne === 'photo') { photo(); continue; }
+    if (ligne === 'retoucher' || ligne.startsWith('interrompre ')) {
+      fs.appendFileSync(path.join(ici, 'demandes'), ligne + '\n');
+      process.stdout.write('fait\n');
+      continue;
+    }
+    break;
   }
   process.stdout.write(JSON.stringify({ remarques: [] }));
 })();
@@ -604,3 +713,465 @@ def test_une_capture_lente_ne_gonfle_pas_la_duree(tmp_path):
 
     _, duree = module.attendre_la_pose(photographier)
     assert duree < 0.5
+
+
+def test_des_reglages_hors_bornes_n_ouvrent_rien(tmp_path):
+    (tmp_path / "reglages.json").write_text(json.dumps({"nombre": 50}))
+    resultat = subprocess.run([sys.executable, str(LANCEUR), "firefox", "--reglages",
+                               str(tmp_path / "reglages.json"), "--fiche",
+                               str(tmp_path / "fiche.txt"), "--sortie", str(tmp_path / "web"),
+                               "--url", "http://127.0.0.1:1/"],
+                              capture_output=True, text=True, timeout=30)
+    assert resultat.returncode == 1
+    assert "nombre doit valoir de 1 à 10" in resultat.stderr
+    assert not (tmp_path / "web").exists()
+
+
+@pytest.mark.parametrize("appareil", [None, "Pixel 5"])
+def test_le_vrai_pilote_garde_la_page_d_un_geste_a_l_autre(tmp_path, appareil):
+    """Le serveur du pilote, contre un vrai Chromium. Chaque geste est un processus neuf, et la
+    page doit pourtant survivre. Le champ touché au premier geste reçoit le texte du deuxième.
+    Ce texte mène la page sur une autre origine, que le troisième geste constate."""
+    node_path = "/opt/node-tools/node_modules"
+    essai = subprocess.run(["node", "-e", "require('playwright').chromium.executablePath()"],
+                           capture_output=True, env={**os.environ, "NODE_PATH": node_path})
+    if not shutil.which("node") or essai.returncode != 0:
+        pytest.skip("node ou playwright absent")
+    (tmp_path / "index.html").write_text(
+        '<input style="position:absolute;left:0;top:0;width:400px;height:80px" oninput="'
+        "if (this.value === 'bonjour') location.href = location.href.replace('127.0.0.1', "
+        "'localhost')\">")
+    serveur = subprocess.Popen([sys.executable, "-m", "http.server", "0", "--bind", "127.0.0.1",
+                                "--directory", str(tmp_path)], stdout=subprocess.PIPE, text=True)
+    port_http = int(serveur.stdout.readline().split("port ")[1].split()[0])
+    conf = tmp_path / "pilote.json"
+    conf.write_text(json.dumps({"moteur": "chromium", "appareil": appareil, "port": 9399, "profil": str(tmp_path / "p"),
+                                "url": f"http://127.0.0.1:{port_http}/", "largeur_css": 412,
+                                "hauteur_css": 915, "echelle": 1.5}))
+    env = {**os.environ, "NODE_PATH": node_path, "F5_PILOTE": str(conf)}
+    pilote = ["node", str(SKILL / "scripts" / "pilote-web.cjs")]
+    import socket
+    import time
+    try:
+        subprocess.run([*pilote, "demarrer"], env=env, check=True, capture_output=True)
+        for _ in range(60):
+            try:
+                socket.create_connection(("127.0.0.1", 9399), timeout=1).close()
+                break
+            except OSError:
+                time.sleep(0.5)
+
+        def geste(nom, valeurs):
+            return subprocess.run([*pilote, nom], env=env, capture_output=True, timeout=60,
+                                  input=(json.dumps(valeurs) + "\nfin\n").encode())
+
+        # Un téléphone imité défile sans molette, et se touche du doigt.
+        assert geste("glisser", [150, 600, 150, 300]).returncode == 0
+        assert geste("glisser", [150, 300, 150, 600]).returncode == 0
+        assert geste("toucher", [150, 60]).returncode == 0
+        assert geste("taper", ["bonjour"]).returncode == 0
+        sortie = geste("voir", [])
+        attendu = b"taille 1.5 412 915 1.5\nfait\n" if appareil is None else b"taille "
+        assert sortie.stdout.startswith(attendu), sortie.stdout[:80]
+        assert "quitté".encode() in sortie.stdout
+        relu = subprocess.run(["node", "-e", f"""
+            const net = require('net'); const s = net.connect(9399, '127.0.0.1');
+            s.write('inconnu\\n'); s.on('close', () => process.exit(0));"""], env=env)
+        assert relu.returncode == 0
+        assert "geste inconnu" in (tmp_path / "pilote.json.erreur").read_text()
+        # Un relais tué en plein geste coupe la connexion sous les photos. Le serveur doit y
+        # survivre, et servir le geste suivant. Revue de la 121.
+        import struct
+        coupe = socket.create_connection(("127.0.0.1", 9399), timeout=5)
+        coupe.sendall(b"voir\n[]\n" + b"photo\n" * 20)
+        coupe.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0))
+        coupe.close()
+        assert geste("voir", []).returncode == 0
+    finally:
+        subprocess.run([*pilote, "arreter"], env=env, capture_output=True, timeout=30)
+        serveur.kill()
+
+
+FAUX_ADB_CHROME = """#!/bin/sh
+ici="$(dirname "$0")"
+echo "$*" >> "$ici/appels.txt"
+case "$*" in
+  *"pm path"*) [ -f "$ici/sans-chrome" ] || echo "package:/data/app/chrome/base.apk" ;;
+  *"wm size"*) echo "Physical size: 1080x2400" ;;
+esac
+"""
+
+
+def faux_adb_chrome(tmp_path):
+    adb = tmp_path / "adb"
+    adb.write_text(FAUX_ADB_CHROME)
+    adb.chmod(0o755)
+    import argparse
+    return argparse.Namespace(adb=str(adb), avd="Mon_telephone", url="http://10.0.2.2:8000/")
+
+
+def test_chrome_android_s_ouvre_vide_sur_le_site(tmp_path):
+    """Chrome vidé, ses écrans d'accueil demandés en moins, puis le site ouvert dans Chrome."""
+    module = lanceur()
+    conf = module.demarrer_chrome_android(faux_adb_chrome(tmp_path), 1, "emulator-5602")
+    appels = (tmp_path / "appels.txt").read_text()
+    assert "shell pm clear com.android.chrome" in appels
+    assert "--disable-fre" in appels
+    assert ("shell am start -a android.intent.action.VIEW -d http://10.0.2.2:8000/ "
+            "-p com.android.chrome") in appels
+    assert conf["paquet"] == "com.android.chrome" and conf["url"] == "http://10.0.2.2:8000/"
+    assert conf["facteur"] == 2.0
+
+
+def test_chrome_android_absent_se_dit(tmp_path):
+    (tmp_path / "sans-chrome").write_text("")
+    with pytest.raises(RuntimeError, match="Chrome n'est pas installé sur le téléphone virtuel"):
+        lanceur().demarrer_chrome_android(faux_adb_chrome(tmp_path), 1, "emulator-5602")
+
+
+def test_relancer_chrome_android_rouvre_le_site(banc):
+    conf = json.loads(banc["conf"].read_text())
+    conf.update(paquet="com.android.chrome", url="http://10.0.2.2:8000/")
+    banc["conf"].write_text(json.dumps(conf))
+    (banc["outils"] / "premier-plan").write_text("com.android.chrome")
+    resultat = piloter(banc, "relancer", "--", "Je rouvre le site.")
+    assert resultat.returncode == 0, resultat.stderr
+    appels = (banc["outils"] / "appels.txt").read_text()
+    assert "am start -a android.intent.action.VIEW -d http://10.0.2.2:8000/" in appels
+    assert "monkey" not in appels
+
+
+def test_relancer_chrome_android_protege_l_adresse_du_shell(banc):
+    conf = json.loads(banc["conf"].read_text())
+    conf.update(paquet="com.android.chrome", url="http://10.0.2.2:8000/?a=1&b=2")
+    banc["conf"].write_text(json.dumps(conf))
+    (banc["outils"] / "premier-plan").write_text("com.android.chrome")
+    resultat = piloter(banc, "relancer", "--", "Je rouvre le site.")
+    assert resultat.returncode == 0, resultat.stderr
+    assert "-d 'http://10.0.2.2:8000/?a=1&b=2' -p" in (banc["outils"] / "appels.txt").read_text()
+
+
+def test_des_reglages_mal_formes_sont_refuses_sans_trace(tmp_path):
+    (tmp_path / "reglages.json").write_text(json.dumps({"paralleles": 2}))
+    resultat = subprocess.run([sys.executable, str(LANCEUR), "firefox", "--reglages",
+                               str(tmp_path / "reglages.json"), "--fiche",
+                               str(tmp_path / "fiche.txt"), "--sortie", str(tmp_path / "web"),
+                               "--url", "http://127.0.0.1:1/"],
+                              capture_output=True, text=True, timeout=30)
+    assert resultat.returncode == 1
+    assert "réglages refusés" in resultat.stderr and "Traceback" not in resultat.stderr
+
+
+def test_les_trois_plateformes_mobiles_se_cochent():
+    module = lanceur()
+    reglages = module.completer(module.DEFAUTS, {
+        "plateformes": ["chrome_android", "chrome_mobile", "safari_mobile"]})
+    assert module.verifier_reglages(reglages) == []
+    assert reglages["paralleles"]["chrome_android"] == 1
+    assert module.NAVIGATEURS["chrome_mobile"]["appareil"] == "Pixel 5"
+    assert module.NAVIGATEURS["safari_mobile"]["appareil"] == "iPhone 12"
+
+
+# ── Les réglages du pilote ──────────────────────────────────────────────────────────────────
+
+
+def regler(banc, **options):
+    conf = json.loads(banc["conf"].read_text())
+    conf["options"] = {**conf.get("options", {}), **options}
+    banc["conf"].write_text(json.dumps(conf))
+
+
+def taps(banc):
+    lignes = (banc["outils"] / "appels.txt").read_text().splitlines()
+    return [l for l in lignes if "input tap" in l]
+
+
+def test_sans_flou_le_testeur_recoit_la_capture_nette(banc):
+    regler(banc, flou=False)
+    resultat = piloter(banc, "voir", "--", "Je regarde l'écran tel qu'il est.")
+    assert resultat.returncode == 0, resultat.stderr
+    assert "Capture : captures/001.jpg" in resultat.stdout
+    assert "petit texte" not in resultat.stdout
+    assert ((banc["testeur"] / "captures/001.jpg").read_bytes()
+            == (banc["nettes"] / "001.jpg").read_bytes())
+
+
+def test_un_flou_fort_pese_moins_qu_un_flou_leger(banc):
+    regler(banc, flou_niveau="léger")
+    piloter(banc, "voir", "--", "Je regarde l'écran, premier coup.")
+    regler(banc, flou_niveau="fort")
+    piloter(banc, "voir", "--", "Je regarde l'écran, second coup.")
+    leger, fort = ((banc["testeur"] / f"captures/00{n}.jpg").stat().st_size for n in (1, 2))
+    assert fort < leger
+
+
+def test_la_part_lisible_se_regle(banc):
+    regler(banc, lecture_max=0.5)
+    piloter(banc, "voir", "--", "Je regarde avant de lire.")
+    resultat = piloter(banc, "lire", "0", "0", "540", "500", "--", "Je lis toute la moitié du haut.")
+    assert resultat.returncode == 0, resultat.stderr
+    resultat = piloter(banc, "lire", "0", "0", "540", "800", "--", "Je lis plus que la moitié ici.")
+    assert "tu ne peux lire que la moitié de l'écran" in resultat.stderr
+    assert "rend au plus la moitié de l'écran" in resultat.stderr
+
+
+def test_sans_doigt_le_toucher_tombe_au_point_vise(banc):
+    regler(banc, doigt=False)
+    piloter(banc, "toucher", "100", "250", "--", "Je touche le bouton du milieu.")
+    ligne = journal(banc)[-1]
+    assert ligne["touche"] == ligne["vise"] == [100, 250]
+
+
+def test_sans_mesure_de_pose_rien_ne_se_dit(banc):
+    regler(banc, pose=False)
+    resultat = piloter(banc, "toucher", "270", "600", "--", "Je touche le bouton du milieu.")
+    assert resultat.returncode == 0, resultat.stderr
+    assert "posé" not in resultat.stdout and "se poser" not in resultat.stdout
+    assert "pose" not in journal(banc)[-1]
+
+
+def test_un_ecran_qui_ne_reagit_pas_se_retouche(banc):
+    """La mire ne change jamais : le testeur impatient touche une seconde fois, au même point."""
+    regler(banc, double_toucher=True, double_seuil=0.5)
+    resultat = piloter(banc, "toucher", "270", "600", "--", "Je touche le bouton du milieu.")
+    assert resultat.returncode == 0, resultat.stderr
+    premier, second = taps(banc)
+    assert premier == second
+    assert journal(banc)[-1]["double"] is True
+
+
+def test_un_ecran_qui_reagit_ne_se_retouche_pas(banc):
+    """L'écran d'avant est une mire, puis une autre : l'app a réagi, un seul toucher part. La
+    première photo sert à lire la taille de l'écran, faute de coup d'œil avant ce toucher."""
+    regler(banc, double_toucher=True, double_seuil=0.5)
+    (banc["outils"] / "ecrans").write_text("mire\nmire\nmire2\n")
+    resultat = piloter(banc, "toucher", "270", "600", "--", "Je touche le bouton du milieu.")
+    assert resultat.returncode == 0, resultat.stderr
+    assert len(taps(banc)) == 1
+    assert "double" not in journal(banc)[-1]
+
+
+def test_le_retouche_tient_aussi_sans_mesure_de_pose(banc):
+    regler(banc, double_toucher=True, double_seuil=0.5, pose=False)
+    piloter(banc, "toucher", "270", "600", "--", "Je touche le bouton du milieu.")
+    assert len(taps(banc)) == 2
+
+
+def test_les_fautes_de_frappe_s_ecrivent_au_journal(banc):
+    regler(banc, fautes=True, fautes_taux=1.0)
+    resultat = piloter(banc, "taper", "bonjour", "--", "J'écris mon pseudo dans le champ.")
+    assert resultat.returncode == 0, resultat.stderr
+    ligne = journal(banc)[-1]
+    assert ligne["voulu"] == "bonjour" and ligne["tape"] != "bonjour"
+    assert ligne["tape"].isascii()
+    assert "bonjour" not in (banc["outils"] / "appels.txt").read_text()
+
+
+def test_sans_fautes_le_texte_part_tel_quel(banc):
+    piloter(banc, "taper", "bonjour", "--", "J'écris mon pseudo dans le champ.")
+    assert "voulu" not in journal(banc)[-1]
+
+
+def test_une_lettre_seule_part_toujours():
+    module = module_pilote()
+    for graine in range(40):
+        conf = {"graine": graine, "options": {"fautes": True, "fautes_taux": 1.0}}
+        assert module.faire_des_fautes(conf, 1, "a") != ""
+
+
+def test_le_calme_se_compte_depuis_le_second_toucher(monkeypatch):
+    """L'écran ne répond qu'un peu après le second toucher. La photo rendue doit le montrer."""
+    module = module_pilote()
+    monkeypatch.setattr(module, "empreinte", lambda photo: photo)
+    monkeypatch.setattr(module, "a_bouge", lambda a, b: a != b)
+    monkeypatch.setattr(module, "est_vide", lambda e: False)
+    rejoue = []
+
+    def photographier():
+        return "apres" if rejoue and module.time.monotonic() - rejoue[0] > 0.3 else "avant"
+
+    double = {"avant": "avant", "seuil": 1.0, "fait": False,
+              "rejouer": lambda: rejoue.append(module.time.monotonic())}
+    photo, pose = module.attendre_la_pose(photographier, double)
+    assert double["fait"] and photo == "apres"
+
+
+def test_chrome_android_parle_du_navigateur(banc):
+    conf = json.loads(banc["conf"].read_text())
+    conf.update(paquet="com.android.chrome", url="http://10.0.2.2:8000/")
+    banc["conf"].write_text(json.dumps(conf))
+    resultat = piloter(banc, "voir", "--", "Je regarde où je suis arrivé.")
+    assert "Remarque : Le navigateur n'est plus au premier plan." in resultat.stdout
+
+
+@pytest.mark.parametrize("donnes, faute", [
+    ({"nombre": 2.5}, "nombre doit être un nombre entier"),
+    ({"fautes": {"actif": "false"}}, "fautes.actif doit valoir vrai ou faux"),
+    ({"pose": {"max": 3}, "double_toucher": {"actif": True, "seuil": 4}},
+     "double_toucher.seuil doit rester sous pose.max"),
+])
+def test_des_reglages_trompeurs_sont_refuses(donnes, faute):
+    module = lanceur()
+    assert faute in " ; ".join(module.verifier_reglages(module.completer(module.DEFAUTS, donnes)))
+
+
+def test_un_fichier_de_reglages_illisible_est_refuse(tmp_path):
+    (tmp_path / "reglages.json").write_text("{\"nombre\": 3,}")
+    resultat = subprocess.run([sys.executable, str(LANCEUR), "firefox", "--reglages",
+                               str(tmp_path / "reglages.json"), "--fiche",
+                               str(tmp_path / "fiche.txt"), "--sortie", str(tmp_path / "web"),
+                               "--url", "http://127.0.0.1:1/"],
+                              capture_output=True, text=True, timeout=30)
+    assert resultat.returncode == 1
+    assert "réglages refusés" in resultat.stderr and "Traceback" not in resultat.stderr
+
+
+def test_une_faute_garde_la_casse_et_epargne_le_reste():
+    module = module_pilote()
+    conf = {"graine": 3, "options": {"fautes": True, "fautes_taux": 1.0}}
+    tape = module.faire_des_fautes(conf, 1, "A 1 é")
+    assert "1" in tape and "é" in tape and " " in tape
+    assert all(c.isupper() for c in tape if c.isalpha() and c.isascii())
+
+
+def test_la_memoire_courte_retire_les_vieilles_captures(banc):
+    regler(banc, memoire_courte=True, memoire_ecrans=2)
+    for n in range(5):
+        piloter(banc, "voir", "--", f"Je regarde l'écran, coup numéro {n}.")
+    restantes = sorted(c.name for c in (banc["testeur"] / "captures").glob("*.jpg"))
+    assert restantes == ["004.jpg", "005.jpg"]
+    assert sorted(c.name for c in (banc["nettes"] / "anciens").glob("*.jpg")) == [
+        "001.jpg", "002.jpg", "003.jpg"]
+    assert journal(banc)[-1]["capture"] == "captures/005.jpg"
+
+
+def test_les_captures_oubliees_reviennent_au_rapatriement(banc, tmp_path):
+    regler(banc, memoire_courte=True, memoire_ecrans=1)
+    for n in range(3):
+        piloter(banc, "voir", "--", f"Je regarde l'écran, coup numéro {n}.")
+    sortie = tmp_path / "sortie"
+    sortie.mkdir()
+    lanceur().rapatrier(1, banc["testeur"], sortie, "{}", "", banc["nettes"])
+    cible = sortie / "testeur-1"
+    assert sorted(c.name for c in (cible / "captures").glob("*.jpg")) == [
+        "001.jpg", "002.jpg", "003.jpg"]
+    assert not (cible / "nettes" / "anciens").exists()
+
+
+def test_la_memoire_courte_garde_le_dernier_coup_d_oeil(banc):
+    """Des lectures à la suite ne retirent pas le coup d'œil où se lisent les coordonnées."""
+    regler(banc, memoire_courte=True, memoire_ecrans=1)
+    piloter(banc, "voir", "--", "Je regarde l'écran une première fois.")
+    piloter(banc, "voir", "--", "Je regarde l'écran une deuxième fois.")
+    for n in range(2):
+        resultat = piloter(banc, "lire", "0", "0", "100", "100", "--", f"Je lis le coin, fois {n}.")
+        assert resultat.returncode == 0, resultat.stderr
+    restantes = sorted(c.name for c in (banc["testeur"] / "captures").glob("*.jpg"))
+    assert restantes == ["002.jpg", "004.jpg"]
+
+
+def test_l_interruption_tombe_une_fois(banc):
+    regler(banc, interruption=True, interruption_geste=2, interruption_duree=0)
+    piloter(banc, "voir", "--", "Premier regard sur l'écran.")
+    resultat = piloter(banc, "voir", "--", "Deuxième regard sur l'écran.")
+    assert "Tu as été interrompu 0 s, puis tu es revenu à l'app." in resultat.stdout
+    assert journal(banc)[-1]["interruption"] == 0
+    resultat = piloter(banc, "voir", "--", "Troisième regard sur l'écran.")
+    assert "interrompu" not in resultat.stdout
+    appels = (banc["outils"] / "appels.txt").read_text()
+    assert appels.count("keyevent 3") == 1
+
+
+def test_l_interruption_saute_une_lecture(banc):
+    regler(banc, interruption=True, interruption_geste=2, interruption_duree=0)
+    piloter(banc, "voir", "--", "Premier regard sur l'écran.")
+    resultat = piloter(banc, "lire", "0", "0", "100", "100", "--", "Je lis le coin du haut.")
+    assert "interrompu" not in resultat.stdout
+    resultat = piloter(banc, "voir", "--", "Troisième regard sur l'écran.")
+    assert "interrompu" in resultat.stdout
+
+
+def test_le_web_retouche_et_s_interrompt(banc_web):
+    regler(banc_web, double_toucher=True, double_seuil=0.5, interruption=True,
+           interruption_geste=1, interruption_duree=0)
+    (banc_web["ici"] / "ecrans-web").write_text("mire\n")
+    resultat = piloter(banc_web, "toucher", "270", "600", "--", "Je touche le bouton du milieu.")
+    assert resultat.returncode == 0, resultat.stderr
+    assert (banc_web["ici"] / "demandes").read_text().splitlines() == ["retoucher",
+                                                                        "interrompre 0"]
+    ligne = journal(banc_web)[-1]
+    assert ligne["double"] is True and ligne["interruption"] == 0
+    assert "puis tu es revenu au site." in resultat.stdout
+
+
+# ── La fenêtre de réglages ──────────────────────────────────────────────────────────────────
+
+
+REGLER = SKILL / "scripts" / "regler.py"
+
+
+def ouvrir_fenetre(sortie, *options):
+    processus = subprocess.Popen([sys.executable, str(REGLER), "--sortie", str(sortie),
+                                  "--sans-navigateur", "--delai", "20", *options],
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    ligne = processus.stdout.readline()
+    return processus, ligne.split()[-1]
+
+
+def poster(adresse, donnees):
+    import urllib.error
+    import urllib.request
+    demande = urllib.request.Request(adresse + "enregistrer", data=json.dumps(donnees).encode(),
+                                     method="POST")
+    try:
+        with urllib.request.urlopen(demande, timeout=10) as reponse:
+            return reponse.status, json.loads(reponse.read())
+    except urllib.error.HTTPError as refus:
+        return refus.code, json.loads(refus.read())
+
+
+def test_la_fenetre_porte_les_defauts_du_lanceur(tmp_path):
+    import urllib.request
+    processus, adresse = ouvrir_fenetre(tmp_path / "run" / "reglages.json")
+    try:
+        page = urllib.request.urlopen(adresse, timeout=10).read().decode()
+        assert "/*DONNEES*/null" not in page
+        assert '"actions_max": 40' in page and '"Peu à l\'aise"' in page
+    finally:
+        processus.kill()
+
+
+def test_la_fenetre_refuse_un_reglage_puis_ecrit_le_bon(tmp_path):
+    sortie = tmp_path / "run" / "reglages.json"
+    processus, adresse = ouvrir_fenetre(sortie)
+    try:
+        code, corps = poster(adresse, {"nombre": 99})
+        assert code == 400 and "nombre" in corps["fautes"][0]
+        assert not sortie.exists()
+        code, corps = poster(adresse, {"nombre": 2, "fautes": {"actif": True}})
+        assert code == 200
+        assert processus.wait(timeout=10) == 0
+    finally:
+        processus.kill()
+    ecrit = json.loads(sortie.read_text())
+    assert ecrit["nombre"] == 2 and ecrit["fautes"] == {"actif": True, "taux": 5}
+    assert ecrit["modele"] == "sonnet"
+
+
+def test_la_fenetre_n_ecrase_pas_des_reglages(tmp_path):
+    (tmp_path / "reglages.json").write_text("{}")
+    resultat = subprocess.run([sys.executable, str(REGLER), "--sortie",
+                               str(tmp_path / "reglages.json"), "--sans-navigateur"],
+                              capture_output=True, text=True, timeout=10)
+    assert resultat.returncode == 1 and "existe déjà" in resultat.stderr
+
+
+def test_le_nombre_du_skill_ouvre_la_fenetre_reglee(tmp_path):
+    import urllib.request
+    processus, adresse = ouvrir_fenetre(tmp_path / "run" / "reglages.json", "--nombre", "4")
+    try:
+        page = urllib.request.urlopen(adresse, timeout=10).read().decode()
+        donnees = json.loads(page.split("const DONNEES = ", 1)[1].split(";\n", 1)[0])
+        assert donnees["initial"]["nombre"] == 4 and donnees["defauts"]["nombre"] == 3
+    finally:
+        processus.kill()

@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Réglages passe parcours</title>
+<!-- La fenêtre de réglages d'un run. `scripts/regler.py` la sert, et remplace DONNEES par les
+     défauts, les bornes et les tempéraments de `lancer_testeurs.py`, leur seule source. Aucune
+     police externe : la page doit s'ouvrir hors ligne. -->
+<style>
+/* Layout : une fenêtre étroite centrée, sections empilées, une ligne par réglage, pied avec le bouton de lancement. */
+:root {
+  --bg: #eef0ee; --panel: #fbfcfb; --fg: #1c2420; --muted: #5f6964; --line: #dde2de;
+  --accent: #1f7a5a; --accent-fg: #ffffff; --changed: #b7791f; --off: #c3cac6;
+  --sans: system-ui, -apple-system, "Segoe UI", sans-serif; --mono: ui-monospace, "Cascadia Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121614; --panel: #1a201d; --fg: #e3e9e5; --muted: #929e98; --line: #2b3430;
+  --accent: #4cc493; --accent-fg: #0d1a14; --changed: #e0a84a; --off: #3a4440; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121614; --panel: #1a201d; --fg: #e3e9e5; --muted: #929e98; --line: #2b3430;
+  --accent: #4cc493; --accent-fg: #0d1a14; --changed: #e0a84a; --off: #3a4440; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 14px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px; }
+.note { max-width: 580px; margin: 0 auto 12px; color: var(--muted); font-size: 12.5px; }
+.fenetre { max-width: 580px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 10px; overflow: hidden; }
+header { padding: 16px 20px 12px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+h1 { font-size: 16px; font-weight: 600; margin: 0; }
+.horo { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+section { padding: 12px 20px 6px; border-bottom: 1px solid var(--line); }
+h2 { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 4px 0 6px; }
+.ligne { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; padding: 9px 0; }
+.ligne + .ligne { border-top: 1px dashed var(--line); }
+.nom { font-weight: 500; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.aide { grid-column: 1 / -1; color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+.aide b { color: var(--fg); font-weight: 500; }
+.sous { grid-column: 1 / -1; display: flex; gap: 14px; flex-wrap: wrap; padding-top: 4px; }
+.sous label { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12.5px; }
+.sous.eteint { opacity: .4; pointer-events: none; }
+.point { width: 6px; height: 6px; border-radius: 50%; background: var(--changed); visibility: hidden; flex: none; }
+.ligne.change .point { visibility: visible; }
+input[type=number], select { font-family: var(--mono); font-size: 13px; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; width: 68px; }
+select { width: auto; max-width: 100%; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bascule { position: relative; display: inline-block; width: 34px; height: 20px; flex: none; }
+.bascule input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.bascule span { position: absolute; inset: 0; background: var(--off); border-radius: 10px; transition: background .15s; pointer-events: none; }
+.bascule span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.bascule input:checked + span { background: var(--accent); }
+.bascule input:checked + span::after { transform: translateX(14px); }
+.bascule input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.choix { display: flex; gap: 6px; flex-wrap: wrap; }
+[hidden] { display: none !important; }
+.choix label { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 13px; }
+.choix input { accent-color: var(--accent); margin: 0; }
+.temps { grid-column: 1 / -1; display: grid; gap: 6px; padding-top: 6px; }
+.temps .rang { display: grid; grid-template-columns: 110px 1fr; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
+.temps select { width: 100%; }
+.liste { grid-column: 1 / -1; margin: 4px 0 0; padding: 8px 10px; background: var(--bg); border-radius: 6px; font-size: 12.5px; line-height: 1.5; color: var(--muted); list-style: none; display: grid; gap: 4px; }
+.liste b { color: var(--fg); font-weight: 500; }
+footer { padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.resume { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 0; }
+.resume b { color: var(--fg); font-weight: 500; }
+.boutons { display: flex; gap: 8px; }
+button { font-family: var(--sans); font-size: 13.5px; font-weight: 500; border-radius: 6px; padding: 8px 14px; cursor: pointer; border: 1px solid var(--line); background: transparent; color: var(--fg); }
+button.lancer { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.confirme { padding: 0 20px 14px; font-size: 12.5px; color: var(--accent); }
+@media (max-width: 420px) { .temps .rang { grid-template-columns: 1fr; gap: 2px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+<style>
+body { margin: 0; }
+.fautes { padding: 0 20px 14px; font-size: 12.5px; color: #b3261e; }
+.fautes li { margin-top: 4px; }
+</style>
+</head>
+<body>
+<form class="fenetre" id="f">
+  <header>
+    <h1>Passe parcours, réglages du run</h1>
+    <span class="horo" id="dossier"></span>
+  </header>
+
+  <section>
+    <h2>Le run</h2>
+    <div class="ligne" data-cle="plateformes">
+      <span class="nom"><i class="point"></i>Plateformes testées</span>
+      <span class="aide">Chaque plateforme cochée reçoit son propre lot de testeurs. Un navigateur absent du PC se signale au lancement, avec sa commande d'installation. Android (app) installe l'APK sur un téléphone virtuel. Chrome Android y ouvre le site dans le vrai Chrome. Les autres sont des navigateurs d'ordinateur. « Imité » veut dire qu'ils se présentent au site comme un téléphone tactile, et Safari n'est que son moteur, sans être un vrai iPhone.</span>
+      <span class="choix" id="plateformes"></span>
+    </div>
+    <div class="ligne" data-cle="nombre">
+      <span class="nom"><i class="point"></i>Testeurs par plateforme</span>
+      <input type="number" id="nombre" data-chemin="nombre">
+    </div>
+    <div class="ligne" data-cle="paralleles">
+      <span class="nom"><i class="point"></i>Testeurs lancés en parallèle</span>
+      <span class="aide">Combien tournent en même temps. Les autres attendent leur tour. Plus de parallèle va plus vite, mais charge le PC.
+        <b>Android et Chrome Android : 1 conseillé</b>, trois téléphones virtuels ensemble ont saturé le PC le 2026-11-16.</span>
+      <span class="sous" id="paralleles"></span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Chaque testeur</h2>
+    <div class="ligne" data-cle="modele effort">
+      <span class="nom"><i class="point"></i>Modèle et réflexion</span>
+      <span class="aide">Opus coûte plusieurs fois plus par capture. La réflexion règle combien le modèle pense avant chaque geste.</span>
+      <span class="sous">
+        <label>Modèle <select id="modele" data-chemin="modele"><option>sonnet</option><option>opus</option><option>haiku</option></select></label>
+        <label>Réflexion <select id="effort" data-chemin="effort"><option value="low">faible</option><option value="medium">moyenne</option><option value="high">forte</option></select></label>
+      </span>
+    </div>
+    <div class="ligne" data-cle="actions_max">
+      <span class="nom"><i class="point"></i>Gestes max par testeur</span>
+      <input type="number" id="gestes" data-chemin="actions_max">
+      <span class="aide">Un geste, c'est une action du testeur : regarder l'écran, toucher, glisser, écrire, revenir, attendre, rouvrir l'app, ou lire un passage.
+        Chacun donne une capture. Au plafond, le testeur doit rendre son rapport.</span>
+    </div>
+    <div class="ligne" data-cle="budget_max">
+      <span class="nom"><i class="point"></i>Dépense max par testeur ($)</span>
+      <input type="number" id="budget" step="0.5" data-chemin="budget_max">
+      <span class="aide">Le prix des appels au modèle, compté par Claude Code au fil de la session. Le plafond atteint, la session s'arrête, même sans rapport.</span>
+    </div>
+    <div class="ligne" data-cle="envie">
+      <span class="nom"><i class="point"></i>S'arrête une fois servi</span>
+      <label class="bascule"><input type="checkbox" id="envie" data-chemin="envie"><span></span></label>
+      <span class="aide">Le testeur vient pour ce que promet la fiche, et s'arrête quand il l'a. Éteint, il fait le tour de l'app.</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Tempéraments</h2>
+    <div class="ligne" data-cle="temperaments">
+      <span class="nom"><i class="point"></i>Tempérament de chaque testeur</span>
+      <span class="aide">Un trait de caractère donné au testeur, pressé ou curieux par exemple. Il change sa manière d'utiliser l'app, jamais ce qu'il sait d'elle. Chaque testeur en a un seul, ou aucun.</span>
+      <span class="sous choix" role="radiogroup" aria-label="Attribution des tempéraments">
+        <label><input type="radio" name="tmode" id="t-aucun" value="aucun"> Aucun</label>
+        <label><input type="radio" name="tmode" id="t-hasard" value="hasard"> Au hasard</label>
+        <label><input type="radio" name="tmode" id="t-choix" value="choix"> Au choix</label>
+      </span>
+      <div class="temps" id="temps" hidden></div>
+      <ul class="liste" id="liste-temps"></ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Ce que le testeur perçoit</h2>
+    <div class="ligne" data-cle="flou">
+      <span class="nom"><i class="point"></i>Voit flou, lit sur demande</span>
+      <label class="bascule"><input type="checkbox" id="flou" data-chemin="flou.actif" data-cible="s-flou"><span></span></label>
+      <span class="aide">Après chaque geste, le testeur voit une capture floue : titres et gros boutons, pas le petit texte. Lire un passage net lui coûte un geste.</span>
+      <span class="sous" id="s-flou">
+        <label>Flou <select id="flou-niveau" data-chemin="flou.niveau"><option>léger</option><option>moyen</option><option>fort</option></select></label>
+        <label>Zone lue au plus <input type="number" id="lecture" step="5" data-chemin="flou.lecture_max"> % de l'écran</label>
+      </span>
+    </div>
+    <div class="ligne" data-cle="doigt">
+      <span class="nom"><i class="point"></i>Doigt imprécis</span>
+      <label class="bascule"><input type="checkbox" id="doigt" data-chemin="doigt.actif" data-cible="s-doigt"><span></span></label>
+      <span class="aide">Chaque toucher tombe au hasard autour du point visé, comme un pouce. Un bouton trop petit se rate.</span>
+      <span class="sous" id="s-doigt">
+        <label>Écart habituel <input type="number" id="doigt-mm" step="0.5" data-chemin="doigt.mm"> mm</label>
+      </span>
+    </div>
+    <div class="ligne" data-cle="pose">
+      <span class="nom"><i class="point"></i>Sent les chargements</span>
+      <label class="bascule"><input type="checkbox" id="pose" data-chemin="pose.actif" data-cible="s-pose"><span></span></label>
+      <span class="aide">Après chaque geste, le testeur apprend combien de temps l'écran a mis à se stabiliser. Éteint, il attend 1,5 s sans rien savoir.</span>
+      <span class="sous" id="s-pose">
+        <label>Attente max <input type="number" id="pose-max" data-chemin="pose.max"> s</label>
+      </span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Comment le testeur se comporte</h2>
+    <div class="ligne" data-cle="double_toucher">
+      <span class="nom"><i class="point"></i>Retouche s'il ne se passe rien</span>
+      <label class="bascule"><input type="checkbox" id="double" data-chemin="double_toucher.actif" data-cible="s-double"><span></span></label>
+      <span class="aide">Si l'écran ne réagit pas assez vite, le testeur touche une seconde fois, comme une personne impatiente. Montre les doubles envois.</span>
+      <span class="sous" id="s-double">
+        <label>Après <input type="number" id="double-seuil" step="0.5" data-chemin="double_toucher.seuil"> s sans réaction</label>
+      </span>
+    </div>
+    <div class="ligne" data-cle="fautes">
+      <span class="nom"><i class="point"></i>Fait des fautes de frappe</span>
+      <label class="bascule"><input type="checkbox" id="fautes" data-chemin="fautes.actif" data-cible="s-fautes"><span></span></label>
+      <span class="aide">Une lettre voisine, oubliée ou doublée, au hasard. Montre comment l'app accueille une saisie fautive.</span>
+      <span class="sous" id="s-fautes">
+        <label>Une lettre fautive sur <input type="number" id="fautes-taux" data-chemin="fautes.taux" hidden><select id="fautes-sur"><option value="10">10</option><option value="5">20</option><option value="2">50</option></select></label>
+      </span>
+    </div>
+    <div class="ligne" data-cle="memoire_courte">
+      <span class="nom"><i class="point"></i>Mémoire courte</span>
+      <label class="bascule"><input type="checkbox" id="memoire" data-chemin="memoire_courte.actif" data-cible="s-memoire"><span></span></label>
+      <span class="aide">Le testeur ne garde sous les yeux que ses derniers écrans. Montre les parcours qui demandent de se souvenir d'un code ou d'un choix.</span>
+      <span class="sous" id="s-memoire">
+        <label>Derniers écrans gardés <input type="number" id="memoire-ecrans" data-chemin="memoire_courte.ecrans"></label>
+      </span>
+    </div>
+    <div class="ligne" data-cle="interruption">
+      <span class="nom"><i class="point"></i>Interrompu en cours de route</span>
+      <label class="bascule"><input type="checkbox" id="interruption" data-chemin="interruption.actif" data-cible="s-interruption"><span></span></label>
+      <span class="aide">Une fois, entre le quart et la moitié des gestes, l'app passe en arrière-plan, comme pour un appel, puis revient. Montre ce qui se perd.</span>
+      <span class="sous" id="s-interruption">
+        <label>Durée <input type="number" id="interruption-duree" data-chemin="interruption.duree"> s</label>
+      </span>
+    </div>
+  </section>
+
+  <footer>
+    <span class="resume" id="resume"></span>
+    <span class="boutons">
+      <button type="button" id="defauts">Défauts</button>
+      <button type="submit" class="lancer" id="lancer">Lancer</button>
+    </span>
+  </footer>
+  <ul class="fautes" id="fautes-liste" hidden></ul>
+  <div class="confirme" id="confirme" hidden></div>
+</form>
+
+<script>
+const DONNEES = /*DONNEES*/null;
+const $ = (id) => document.getElementById(id);
+const champs = () => [...document.querySelectorAll('[data-chemin]')];
+const lire = (objet, chemin) => chemin.split('.').reduce((o, c) => o[c], objet);
+const poser = (objet, chemin, valeur) => {
+  const cles = chemin.split('.'); const derniere = cles.pop();
+  cles.reduce((o, c) => (o[c] = o[c] || {}), objet)[derniere] = valeur;
+};
+const mode = () => (document.querySelector('input[name=tmode]:checked') || {}).value || 'aucun';
+let choixTemps = {};
+
+function remplir(r) {
+  champs().forEach((e) => {
+    const v = lire(r, e.dataset.chemin);
+    if (e.type === 'checkbox') e.checked = v; else e.value = v;
+  });
+  $('fautes-sur').value = String(r.fautes.taux);
+  DONNEES.plateformes.forEach(([cle]) => { $('p-' + cle).checked = r.plateformes.includes(cle); });
+  $('t-' + r.temperaments.mode).checked = true;
+  choixTemps = { ...r.temperaments.choix };
+}
+
+function reglages() {
+  const r = JSON.parse(JSON.stringify(DONNEES.defauts));
+  $('fautes-taux').value = $('fautes-sur').value;
+  champs().forEach((e) => {
+    const v = e.type === 'checkbox' ? e.checked : (e.type === 'number' ? Number(e.value) : e.value);
+    poser(r, e.dataset.chemin, v);
+  });
+  r.plateformes = DONNEES.plateformes.map(([cle]) => $('p-' + cle).checked && cle).filter(Boolean);
+  r.temperaments = { mode: mode(), choix: mode() === 'choix' ? { ...choixTemps } : {} };
+  return r;
+}
+
+function dessinerTemps(r) {
+  const zone = $('temps');
+  zone.hidden = r.temperaments.mode !== 'choix';
+  if (zone.hidden) return;
+  const noms = Object.keys(DONNEES.temperaments);
+  zone.innerHTML = '';
+  r.plateformes.forEach((p) => {
+    for (let rang = 1; rang <= Math.max(1, r.nombre || 1); rang++) {
+      const cle = `${p}-${rang}`;
+      if (!(cle in choixTemps)) choixTemps[cle] = noms[(rang - 1) % noms.length];
+      const ligne = document.createElement('label');
+      ligne.className = 'rang';
+      ligne.innerHTML = `<span>${NOMS[p]} ${rang}</span>`;
+      const choix = document.createElement('select');
+      choix.dataset.rang = cle;
+      ['Aucun', ...noms].forEach((n) => choix.add(new Option(n, n, false, n === choixTemps[cle])));
+      ligne.appendChild(choix);
+      zone.appendChild(ligne);
+    }
+  });
+}
+
+function maj(ev) {
+  if (ev && ev.target && ev.target.dataset && ev.target.dataset.rang) {
+    choixTemps[ev.target.dataset.rang] = ev.target.value;
+  }
+  const r = reglages();
+  if (!(ev && ev.target && ev.target.dataset && ev.target.dataset.rang)) dessinerTemps(r);
+  DONNEES.plateformes.forEach(([cle]) => { $('par-' + cle).parentNode.hidden = !$('p-' + cle).checked; });
+  document.querySelectorAll('[data-cible]').forEach((b) => $(b.dataset.cible).classList.toggle('eteint', !b.checked));
+  let changes = 0;
+  document.querySelectorAll('.ligne[data-cle]').forEach((l) => {
+    const c = l.dataset.cle.split(' ').some((k) => JSON.stringify(k === 'temperaments' ? r[k].mode : r[k])
+      !== JSON.stringify(k === 'temperaments' ? DONNEES.defauts[k].mode : DONNEES.defauts[k]));
+    l.classList.toggle('change', c); if (c) changes++;
+  });
+  const total = r.plateformes.length * (r.nombre || 0);
+  const fr = (x) => String(+x.toFixed(2)).replace('.', ',');
+  $('resume').innerHTML = `<b>${total}</b> testeur${total > 1 ? 's' : ''} · dépense max <b>${total} × ${fr(r.budget_max || 0)} $ = ${fr(total * (r.budget_max || 0))} $</b>` +
+    (changes ? ` · ${changes} réglage${changes > 1 ? 's' : ''} changé${changes > 1 ? 's' : ''}` : ' · réglages par défaut');
+  $('lancer').disabled = total === 0;
+}
+
+// Une case et un réglage de parallèle par plateforme, dans l'ordre du lanceur.
+const NOMS = Object.fromEntries(DONNEES.plateformes);
+DONNEES.plateformes.forEach(([cle, nom]) => {
+  const caseP = document.createElement('label');
+  caseP.innerHTML = `<input type="checkbox" id="p-${cle}"> `;
+  caseP.append(nom);
+  $('plateformes').appendChild(caseP);
+  const par = document.createElement('label');
+  par.append(nom + ' ');
+  const champ = document.createElement('input');
+  Object.assign(champ, { type: 'number', id: 'par-' + cle });
+  champ.dataset.chemin = 'paralleles.' + cle;
+  par.appendChild(champ);
+  $('paralleles').appendChild(par);
+});
+$('dossier').textContent = DONNEES.dossier ? `passe-parcours/${DONNEES.dossier}/` : '';
+Object.entries(DONNEES.bornes).forEach(([chemin, [bas, haut]]) => {
+  const e = document.querySelector(`[data-chemin="${chemin}"]`);
+  if (e && e.type === 'number') { e.min = bas; e.max = haut; }
+});
+Object.entries(DONNEES.temperaments).forEach(([nom, texte]) => {
+  const li = document.createElement('li');
+  li.innerHTML = '<b></b> : ';
+  li.firstChild.textContent = nom;
+  li.append(texte);
+  $('liste-temps').appendChild(li);
+});
+remplir(DONNEES.initial);
+const f = $('f');
+f.addEventListener('input', maj); f.addEventListener('change', maj);
+$('defauts').addEventListener('click', () => { remplir(DONNEES.defauts); maj(); });
+f.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const liste = $('fautes-liste');
+  liste.hidden = true;
+  const reponse = await fetch('/enregistrer', { method: 'POST', body: JSON.stringify(reglages()) })
+    .catch(() => null);
+  if (!reponse) {
+    liste.innerHTML = '<li>La session ne répond plus. Relance le skill.</li>'; liste.hidden = false; return;
+  }
+  const corps = await reponse.json();
+  if (!reponse.ok) {
+    liste.innerHTML = '';
+    corps.fautes.forEach((t) => { const li = document.createElement('li'); li.textContent = t; liste.appendChild(li); });
+    liste.hidden = false; return;
+  }
+  f.querySelectorAll('input,select,button').forEach((e) => { e.disabled = true; });
+  $('confirme').textContent = 'Réglages enregistrés. Tu peux fermer cette fenêtre : la session continue.';
+  $('confirme').hidden = false;
+});
+maj();
+</script>
+</body>
+</html>
