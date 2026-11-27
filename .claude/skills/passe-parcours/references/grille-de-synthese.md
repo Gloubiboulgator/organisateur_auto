@@ -6,16 +6,23 @@ sortie. Le lecteur est l'admin, qui connaît son app et n'a vu aucun testeur.
 ## La lecture, dans cet ordre
 
 1. **La sortie du lanceur.** Un testeur sans rapport se nomme d'abord, avec sa panne.
-2. **Chaque bilan**, `testeur-<n>/bilan.json`. Le rapport, le coût, et les refus de permission.
-3. **Chaque journal**, `testeur-<n>/journal.jsonl`, geste par geste, avec sa capture ouverte. Le
+2. **Les réglages du run**, `reglages.json` de chaque plateforme. Un appui humain éteint change
+   ce que les captures prouvent. Sans flou, le testeur a tout lu. Sans doigt imprécis, un bouton
+   raté ne peut venir de sa taille. `temperaments_par_rang` dit le tempérament de chaque testeur.
+3. **Chaque bilan**, `testeur-<n>/bilan.json`. Le rapport, le coût, et les refus de permission.
+4. **Chaque journal**, `testeur-<n>/journal.jsonl`, geste par geste, avec sa capture ouverte. Le
    rapport dit ce que le testeur a retenu. Le journal dit ce qu'il a vécu, et les deux
    divergent parfois. Le testeur n'a vu que des coups d'œil flous, dans `captures/`. Les
    captures nettes du même numéro vivent dans `nettes/`. Un geste `lire` est une lecture. Sa
    capture dans `captures/` est la zone lue, nette, et le journal porte ses coins.
    `vise` et `touche` disent où le doigt visait et où il est tombé. `pose` dit en combien de
-   secondes l'écran s'est posé. `"vide"` dit qu'il est resté vide dix secondes, `"bouge"` qu'il
-   bougeait encore.
-4. **Le parcours de la phase 1**, `parcours.json`.
+   secondes l'écran s'est posé. `"vide"` dit qu'il est resté vide jusqu'au bout de l'attente,
+   `pose.max` des réglages, `"bouge"` qu'il bougeait encore. Sans mesure de la pose, le champ
+   manque.
+   `double` dit que le testeur a retouché un écran qui ne réagissait pas. Un double envoi se
+   cherche sur la capture suivante. `voulu` et `tape` disent le texte visé et celui qui est parti
+   avec ses fautes. `interruption` dit que l'app est passée en arrière-plan avant la capture.
+5. **Le parcours de la phase 1**, `parcours.json`.
 
 ## Ce que la lecture produit
 
@@ -59,6 +66,8 @@ au premier écran, puis à la fin.
 ## Les blocs de l'artefact, dans cet ordre
 
 1. **Le verdict**, en une phrase. Combien de testeurs ont compris l'app, combien ont abandonné.
+   Dessous, une ligne nomme les réglages du run qui s'écartent des défauts, ou dit qu'il n'y en a
+   aucun.
 2. **Les problèmes**, triés par testeurs touchés, puis par gravité. Capture, citation et solution
    proposée pour chacun.
 3. **Le logigramme de la phase 1**, coloré. Un écran atteint par tous, par certains, par aucun.

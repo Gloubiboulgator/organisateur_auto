@@ -30,6 +30,10 @@ CE QU'IL GARANTIT
 - **Des coordonnées dans le repère de la capture.** Le testeur vise ce qu'il voit, et le pilote
   convertit vers l'écran réel. Sans ça, il viserait à côté sur chaque écran haute définition.
   Côté Android, ce script convertit. Côté web, le pilote Node mesure l'échelle sur la page.
+- **Des réglages par run.** Chaque comportement ci-dessus s'éteint ou se règle par la clé
+  `options` de la configuration, que la fenêtre de réglages remplit. Quatre autres s'y ajoutent,
+  éteints par défaut. Le double toucher d'un humain impatient, les fautes de frappe, la mémoire
+  courte, et une interruption au milieu du test. Décidé par l'admin le 2026-11-27.
 
 SA CONFIGURATION VIT HORS DU DOSSIER DU TESTEUR. La variable `F5_PILOTE` la désigne. Le testeur
 ne peut lire que son dossier, et la configuration porte des chemins qui nomment le projet.
@@ -49,6 +53,8 @@ import json
 import math
 import os
 import random
+import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -89,6 +95,23 @@ DOIGT_BORNE = 3
 FLOU = 80 / 540
 # Une lecture rend au plus le quart de l'écran. Sans borne, un seul geste rendrait tout l'écran.
 LECTURE_MAX = 0.25
+# Les deux autres niveaux du coup d'œil, ajoutés le 2026-11-27 pour la fenêtre de réglages. Ils
+# n'ont pas été jugés sur un écran réel, contrairement au niveau moyen.
+NIVEAUX_FLOU = {"léger": 120 / 540, "moyen": FLOU, "fort": 55 / 540}
+# Sans la mesure de la pose, l'attente fixe d'avant le 2026-11-19.
+ATTENTE_FIXE = 1.5
+
+# Les réglages d'un run, quand la configuration n'en dit rien. Ce sont ceux d'avant la fenêtre
+# de réglages : les trois appuis humains allumés, les quatre ajoutés le 2026-11-27 éteints.
+OPTIONS = {"flou": True, "flou_niveau": "moyen", "lecture_max": LECTURE_MAX,
+           "doigt": True, "doigt_mm": DOIGT_MM, "pose": True, "pose_max": POSE["max"],
+           "double_toucher": False, "double_seuil": 1.0,
+           "fautes": False, "fautes_taux": 0.05,
+           "memoire_courte": False, "memoire_ecrans": 3,
+           "interruption": False, "interruption_geste": None, "interruption_duree": 10}
+# Les touches voisines sur un clavier AZERTY de téléphone. La faute la plus courante est le doigt
+# qui tombe sur la lettre d'à côté.
+RANGEES_AZERTY = ("azertyuiop", "qsdfghjklm", "wxcvbn")
 
 AIDE = """Usage : ./piloter <geste> [arguments] -- "ton commentaire"
 Gestes :
@@ -109,10 +132,23 @@ ARITE = {"voir": 0, "toucher": 2, "glisser": 4, "taper": 1, "retour": 0, "attend
          "relancer": 0, "lire": 4}
 
 
+# Sans coup d'œil flou, l'aide ne parle plus de flou. `principal` la règle une fois la
+# configuration lue.
+AIDE_NETTE = AIDE.replace("""Chaque capture est un coup d'œil : le petit texte n'y est pas lisible. « lire » compte comme un
+geste, et rend au plus un quart de l'écran.
+""", "")
+aide_courante = AIDE
+
+
 def refuser(message):
     """Arrête sur un message que le testeur peut comprendre, sans chemin ni nom de projet."""
-    print(f"piloter : {message}\n\n{AIDE}", file=sys.stderr)
+    print(f"piloter : {message}\n\n{aide_courante}", file=sys.stderr)
     sys.exit(2)
+
+
+def options(conf):
+    """Les réglages du run, ceux de la configuration complétés par les défauts."""
+    return {**OPTIONS, **conf.get("options", {})}
 
 
 def lire_appel(arguments):
@@ -146,14 +182,51 @@ def lire_configuration():
     return conf
 
 
-def tirer_doigt(conf, numero):
-    """L'écart du doigt pour ce geste, en millimètres, sur chaque axe.
-
-    Une graine dans la configuration rend le tirage rejouable, pour les essais."""
+def hasard_du_geste(conf, numero, sorte):
+    """Un tirage propre au geste et à son usage. Une graine dans la configuration le rend
+    rejouable, pour les essais."""
     graine = conf.get("graine")
-    hasard = random.Random(f"{graine}-{numero}") if graine is not None else random.Random()
-    borne = DOIGT_MM * DOIGT_BORNE
-    return [max(-borne, min(borne, hasard.gauss(0, DOIGT_MM))) for _ in range(2)]
+    return random.Random(f"{graine}-{numero}-{sorte}") if graine is not None else random.Random()
+
+
+def tirer_doigt(conf, numero):
+    """L'écart du doigt pour ce geste, en millimètres, sur chaque axe. Nul si le doigt est exact."""
+    reglages = options(conf)
+    if not reglages["doigt"]:
+        return [0, 0]
+    hasard = hasard_du_geste(conf, numero, "doigt")
+    ecart_type = reglages["doigt_mm"]
+    borne = ecart_type * DOIGT_BORNE
+    return [max(-borne, min(borne, hasard.gauss(0, ecart_type))) for _ in range(2)]
+
+
+def faire_des_fautes(conf, numero, texte):
+    """Le texte tel que le pouce l'a tapé. Une lettre sur vingt par défaut est fautive.
+
+    La faute est l'une des trois d'un pouce pressé. La lettre voisine sur le clavier, une lettre
+    oubliée, ou une lettre doublée. Seules les lettres sans accent fautent, pour qu'Android sache
+    encore taper le résultat."""
+    reglages = options(conf)
+    if not reglages["fautes"]:
+        return texte
+    hasard = hasard_du_geste(conf, numero, "fautes")
+    tape = []
+    for lettre in texte:
+        bas = lettre.lower()
+        rangee = next((r for r in RANGEES_AZERTY if bas in r), None)
+        if rangee is None or hasard.random() >= reglages["fautes_taux"]:
+            tape.append(lettre)
+            continue
+        sorte = hasard.choice(("voisine", "oubliee", "doublee"))
+        if sorte == "voisine":
+            i = rangee.index(bas)
+            voisines = [rangee[j] for j in (i - 1, i + 1) if 0 <= j < len(rangee)]
+            voisine = hasard.choice(voisines)
+            tape.append(voisine.upper() if lettre.isupper() else voisine)
+        elif sorte == "doublee":
+            tape.append(lettre * 2)
+    # Un texte d'une lettre oubliée ne partirait pas du tout. Revue de la 121.
+    return "".join(tape) or texte
 
 
 def empreinte(png):
@@ -184,8 +257,12 @@ def est_vide(gris):
     return proches >= POSE["uni_part"] * len(corps)
 
 
-def attendre_la_pose(photographier):
+def attendre_la_pose(photographier, double=None):
     """Photographie jusqu'à ce que l'écran ne bouge plus. Rend la dernière photo et la durée.
+
+    `double` porte le toucher impatient : l'empreinte de l'écran d'avant le geste, le délai, et
+    le geste à rejouer. Si l'écran n'a toujours pas bougé au bout du délai, le geste se rejoue
+    une fois, comme un humain qui retouche. `double` dit alors s'il a servi, par sa clé "fait".
 
     Le dernier changement a eu lieu entre la photo d'avant et celle qui le montre. La durée court
     jusqu'au milieu des deux demandes. Une capture prend une seconde sur un vrai téléphone, et
@@ -198,7 +275,15 @@ def attendre_la_pose(photographier):
     precedente, changement, avant = empreinte(photo), depart, depart
     vide = est_vide(precedente)
     duree = 0.0
-    while time.monotonic() - changement < POSE["calme"] or vide:
+    # L'écran a réagi au geste dès la première photo, ou pas encore.
+    reagi = double is None or a_bouge(double["avant"], precedente)
+    while time.monotonic() - changement < POSE["calme"] or vide or not reagi:
+        if not reagi and time.monotonic() - depart >= double["seuil"]:
+            double["rejouer"]()
+            double["fait"], reagi = True, True
+            # Le calme se compte depuis le second toucher. Sinon, la photo d'après partait
+            # avant que l'écran n'y ait répondu. Relevé par la revue de la 121.
+            changement = avant = time.monotonic()
         if time.monotonic() - depart >= POSE["max"]:
             return photo, "vide" if vide else "bouge"
         time.sleep(POSE["pas"])
@@ -207,9 +292,26 @@ def attendre_la_pose(photographier):
         actuelle = empreinte(photo)
         if a_bouge(precedente, actuelle):
             changement, duree = demande, (avant + demande) / 2 - depart
-            precedente, vide = actuelle, est_vide(actuelle)
+            precedente, vide, reagi = actuelle, est_vide(actuelle), True
         avant = demande
     return photo, math.floor(duree * 10) / 10
+
+
+def attente_fixe(photographier, double=None):
+    """Sans la mesure de la pose : une photo après 1,5 s, sans durée à dire.
+
+    Le toucher impatient y garde sa place. Une photo au bout du délai dit si l'écran a réagi, et
+    le geste se rejoue sinon, avant le reste de l'attente."""
+    if double is not None:
+        time.sleep(double["seuil"])
+        if not a_bouge(double["avant"], empreinte(photographier())):
+            double["rejouer"]()
+            double["fait"] = True
+        # Après un second toucher, l'attente repart en entier. Revue de la 121.
+        time.sleep(ATTENTE_FIXE if double["fait"] else max(0.0, ATTENTE_FIXE - double["seuil"]))
+    else:
+        time.sleep(ATTENTE_FIXE)
+    return photographier(), None
 
 
 def phrase_de_pose(duree):
@@ -237,19 +339,30 @@ def taille_image(chemin):
     return largeur, hauteur
 
 
-def filtre_flou(largeur, hauteur):
+def filtre_flou(largeur, hauteur, niveau=FLOU):
     """Le coup d'œil : réduire, puis ré-agrandir à la taille de la capture nette."""
-    petite = max(1, round(largeur * FLOU))
+    petite = max(1, round(largeur * niveau))
     return f"scale={petite}:-1:flags=area,scale={largeur}:{hauteur}:flags=bicubic"
 
 
-def flouter(nette, destination):
-    """Le coup d'œil tiré de la capture nette. Rend sa largeur et sa hauteur."""
+def flouter(nette, destination, niveau=FLOU):
+    """Le coup d'œil tiré de la capture nette. Rend sa largeur et sa hauteur.
+
+    Sans niveau, le flou est éteint, et le testeur reçoit la capture nette elle-même."""
     largeur, hauteur = taille_image(nette)
+    if niveau is None:
+        shutil.copyfile(nette, destination)
+        return largeur, hauteur
     commande = ["ffmpeg", "-loglevel", "error", "-y", "-i", str(nette), "-vf",
-                filtre_flou(largeur, hauteur), "-q:v", "4", str(destination)]
+                filtre_flou(largeur, hauteur, niveau), "-q:v", "4", str(destination)]
     subprocess.run(commande, check=True, timeout=60)
     return largeur, hauteur
+
+
+def niveau_de_flou(conf):
+    """La part de la largeur que garde le coup d'œil, ou None si le flou est éteint."""
+    reglages = options(conf)
+    return NIVEAUX_FLOU[reglages["flou_niveau"]] if reglages["flou"] else None
 
 
 def dernier_coup_d_oeil(conf):
@@ -278,9 +391,21 @@ def zone_lisible(conf, valeurs):
     x2, y2 = round(min(largeur, x2)), round(min(hauteur, y2))
     if x2 - x1 < 1 or y2 - y1 < 1:
         refuser("la zone à lire est vide ou hors de l'écran")
-    if (x2 - x1) * (y2 - y1) > LECTURE_MAX * largeur * hauteur:
-        refuser("tu ne peux lire qu'un quart de l'écran à la fois")
+    part = options(conf)["lecture_max"]
+    if (x2 - x1) * (y2 - y1) > part * largeur * hauteur:
+        refuser(f"tu ne peux lire {que(texte_de_part(part))} de l'écran à la fois")
     return [x1, y1, x2, y2]
+
+
+def texte_de_part(part):
+    """« un quart », « la moitié », ou un pourcentage, pour le message de refus."""
+    mots = {0.25: "un quart", 0.5: "la moitié", 1.0: "la totalité"}
+    return mots.get(round(part, 2), f"{round(part * 100)} %")
+
+
+def que(suite):
+    """« qu'un quart », « que la moitié » : l'élision devant une voyelle."""
+    return f"qu'{suite}" if suite[:1] in "aeiouy" else f"que {suite}"
 
 
 def decouper(nette, taille_nette, zone, destination, coup_d_oeil):
@@ -402,18 +527,29 @@ def agir_android(conf, geste, valeurs):
         "glisser": lambda: adb(conf, "shell", "input", "swipe", *valeurs, "400"),
         "taper": lambda: adb(conf, "shell", "input", "text", texte_pour_adb(valeurs[0])),
         "retour": lambda: adb(conf, "shell", "input", "keyevent", "4"),
-        "relancer": lambda: adb(conf, "shell", "monkey", "-p", conf["paquet"], "-c",
-                                "android.intent.category.LAUNCHER", "1"),
+        "relancer": lambda: relancer_android(conf),
     }
     if geste in gestes:
         gestes[geste]()
+
+
+def relancer_android(conf):
+    """Rouvre l'app. Pour Chrome sur Android, rouvre le site, comme un lien suivi à nouveau."""
+    if conf.get("url"):
+        # `adb shell` relit sa ligne dans le shell du téléphone. Une esperluette y couperait
+        # l'adresse. Relevé par la revue de la 121.
+        adb(conf, "shell", "am", "start", "-a", "android.intent.action.VIEW", "-d",
+            shlex.quote(conf["url"]), "-p", conf["paquet"])
+    else:
+        adb(conf, "shell", "monkey", "-p", conf["paquet"], "-c",
+            "android.intent.category.LAUNCHER", "1")
 
 
 def photo_android(conf):
     return adb(conf, "exec-out", "screencap", "-p", sortie_binaire=True)
 
 
-def photographier_android(conf, nette, floue=None, png=None):
+def photographier_android(conf, nette, floue=None, png=None, niveau=FLOU):
     """La capture nette, ramenée à la largeur de travail en JPEG, et son coup d'œil si demandé.
 
     Les deux sortent d'un seul ffmpeg, tirés de la photo brute. Le flou se calculait sur le JPEG
@@ -429,16 +565,27 @@ def photographier_android(conf, nette, floue=None, png=None):
     largeur = conf["largeur_capture"]
     hauteur = max(2, 2 * round(hauteur_ecran * largeur / largeur_ecran / 2))
     reduite = f"scale={largeur}:{hauteur}"
-    if floue is None:
+    if floue is None or niveau is None:
         sorties = ["-vf", reduite, "-q:v", "4", str(nette)]
     else:
         sorties = ["-filter_complex",
-                   f"[0]{reduite},split[n][f];[f]{filtre_flou(largeur, hauteur)}[o]",
+                   f"[0]{reduite},split[n][f];[f]{filtre_flou(largeur, hauteur, niveau)}[o]",
                    "-map", "[n]", "-q:v", "4", str(nette), "-map", "[o]", "-q:v", "4", str(floue)]
     subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(brute), *sorties],
                    check=True, timeout=60)
     brute.unlink()
+    if floue is not None and niveau is None:
+        # Flou éteint : le testeur reçoit la capture nette elle-même.
+        shutil.copyfile(nette, floue)
     return largeur, hauteur
+
+
+def interrompre_android(conf, duree):
+    """L'app passe en arrière-plan, comme pour un appel, puis revient là où elle était."""
+    adb(conf, "shell", "input", "keyevent", "3")
+    time.sleep(duree)
+    adb(conf, "shell", "monkey", "-p", conf["paquet"], "-c",
+        "android.intent.category.LAUNCHER", "1")
 
 
 def remarques_android(conf):
@@ -448,7 +595,9 @@ def remarques_android(conf):
                     or "mResumedActivity" in l]
     if premier_plan and conf["paquet"] not in premier_plan[0]:
         # Le constat seul, sans la commande qui ramène : un humain n'a personne pour la lui
-        # souffler. Décidé le 2026-11-19.
+        # souffler. Décidé le 2026-11-19. Chrome Android teste un site. Revue de la 121.
+        if conf.get("url"):
+            return ["Le navigateur n'est plus au premier plan."]
         return ["L'app n'est plus au premier plan."]
     return []
 
@@ -493,20 +642,23 @@ def valeurs_web(node, geste, valeurs, ecart_mm):
     Le web n'a pas de densité d'écran : le pixel CSS vaut le point de densité d'Android, 160 par
     pouce. 2 mm font donc environ 12,6 pixels CSS."""
     entete = node.stdout.readline().split()
-    if len(entete) != 4 or entete[0] != b"taille":
+    if len(entete) not in (4, 5) or entete[0] != b"taille":
         raise panne_node(node)
     try:
-        echelle, largeur, hauteur = (float(v) for v in entete[1:])
+        echelle, largeur, hauteur = (float(v) for v in entete[1:4])
+        # Les pixels de capture par pixel d'écran. Ils diffèrent de l'échelle des gestes sur une
+        # page dézoomée, où le doigt garde pourtant sa taille réelle. 2026-11-27.
+        densite = float(entete[4]) if len(entete) == 5 else echelle
     except ValueError:
         raise panne_node(node) from None
     if geste not in ("toucher", "glisser"):
         return valeurs, None
-    ecart = [mm * 160 / 25.4 * echelle for mm in ecart_mm]
+    ecart = [mm * 160 / 25.4 * densite for mm in ecart_mm]
     touche = decaler(valeurs, ecart, largeur * echelle, hauteur * echelle)
     return touche, [round(v) for v in touche]
 
 
-def agir_web(conf, geste, valeurs, ecart_mm, mesurer):
+def agir_web(conf, geste, valeurs, ecart_mm, mesurer, impatient=False, interruption=None):
     """Fait agir le pilote Node, puis lui demande des photos. Rend la dernière, la pose et sa sortie.
 
     Il relit la même configuration, par la variable d'environnement héritée. L'écart du doigt
@@ -520,37 +672,64 @@ def agir_web(conf, geste, valeurs, ecart_mm, mesurer):
     conclure en JSON. Attendre « fait » garde son lancement hors de la durée mesurée.
 
     Son erreur s'écrit dans un fichier, qu'aucun tuyau plein ne bloque. Rend aussi le point
-    touché, ou None."""
+    touché, ou None.
+
+    Un toucher impatient demande une photo avant le geste, puis « retoucher » si l'écran tarde.
+    Une interruption s'envoie par « interrompre S », après l'attente. Node répond « fait » aux
+    deux. Rend aussi, dans le JSON, si le toucher a été rejoué."""
     env = {**os.environ, "NODE_PATH": conf.get("node_path", "")}
     erreurs = tempfile.TemporaryFile()
     node = subprocess.Popen(["node", conf["pilote_web"], geste], stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE, stderr=erreurs, env=env)
     node.erreurs = erreurs
-    # Un navigateur figé ne bloque pas le testeur plus de 90 s.
-    garde = threading.Timer(90, node.kill)
+    # Un navigateur figé ne bloque pas le testeur plus de 90 s, en plus des attentes que les
+    # réglages permettent dans le geste. Sans elles, une interruption longue tuait chaque geste.
+    # Relevé par la revue de la 121.
+    reglages = options(conf)
+    garde = threading.Timer(90 + reglages["pose_max"] + reglages["double_seuil"]
+                            + (interruption or 0), node.kill)
     garde.start()
     try:
         valeurs, touche = valeurs_web(node, geste, valeurs, ecart_mm)
+        double = None
+        if impatient and geste == "toucher":
+            double = {"avant": empreinte(photo_node(node)), "seuil": options(conf)["double_seuil"],
+                      "rejouer": lambda: attendre_fait(node, b"retoucher\n"), "fait": False}
         ecrire_a_node(node, json.dumps(valeurs).encode() + b"\n")
         if node.stdout.readline().strip() != b"fait":
             raise panne_node(node)
-        if mesurer:
-            photo, pose = attendre_la_pose(lambda: photo_node(node))
+        if mesurer and options(conf)["pose"]:
+            photo, pose = attendre_la_pose(lambda: photo_node(node), double)
+        elif mesurer:
+            photo, pose = attente_fixe(lambda: photo_node(node), double)
         else:
             photo, pose = photo_node(node), None
+        if interruption is not None:
+            attendre_fait(node, f"interrompre {interruption}\n".encode())
+            marquer_l_interruption(conf)
+            photo = photo_node(node)
         ecrire_a_node(node, b"fin\n", fermer=True)
         sortie = node.stdout.read()
         if node.wait() != 0:
             raise panne_node(node)
         try:
-            return photo, pose, touche, json.loads(sortie)
+            retour = json.loads(sortie)
         except ValueError:
             raise RuntimeError("le navigateur a rendu une réponse illisible") from None
+        retour["double"] = bool(double and double["fait"])
+        return photo, pose, touche, retour
     finally:
         garde.cancel()
         node.kill()
         node.wait()
         erreurs.close()
+
+
+def attendre_fait(node, ligne):
+    """Une demande à Node qui n'attend que son « fait »."""
+    ecrire_a_node(node, ligne)
+    if node.stdout.readline().strip() != b"fait":
+        raise panne_node(node)
 
 
 def ecrire_jpeg(png, destination):
@@ -562,9 +741,67 @@ def ecrire_jpeg(png, destination):
 # ── Le geste ─────────────────────────────────────────────────────────────────────────────────
 
 
-def numero_suivant():
+def dossier_des_anciens(conf):
+    """Où partent les captures que la mémoire courte retire au testeur, hors de son dossier."""
+    return Path(conf["dossier_net"]) / "anciens"
+
+
+def numero_suivant(conf):
+    """Le numéro du geste, captures retirées par la mémoire courte comprises."""
     CAPTURES.mkdir(exist_ok=True)
-    return len(list(CAPTURES.glob("*.jpg"))) + 1
+    anciens = dossier_des_anciens(conf)
+    retirees = len(list(anciens.glob("*.jpg"))) if anciens.is_dir() else 0
+    return len(list(CAPTURES.glob("*.jpg"))) + retirees + 1
+
+
+def oublier(conf, numero):
+    """La mémoire courte : seules les dernières captures restent dans le dossier du testeur.
+
+    Les autres partent hors de sa portée. Le lanceur les remet à leur place au rapatriement, pour
+    la synthèse. Le modèle garde en tête ce qu'il a déjà ouvert. Sa consigne lui demande donc de
+    faire comme une personne qui ne s'en souvient que vaguement.
+
+    Le dernier coup d'œil reste, même ancien : les coordonnées s'y lisent, et une suite de
+    lectures l'aurait sinon retiré. Relevé par la revue de la 121."""
+    reglages = options(conf)
+    if not reglages["memoire_courte"]:
+        return
+    anciens = dossier_des_anciens(conf)
+    anciens.mkdir(exist_ok=True)
+    garde = dernier_coup_d_oeil_numero()
+    for capture in CAPTURES.glob("*.jpg"):
+        if (capture.stem.isdigit() and int(capture.stem) <= numero - reglages["memoire_ecrans"]
+                and int(capture.stem) != garde):
+            shutil.move(str(capture), anciens / capture.name)
+
+
+def dernier_coup_d_oeil_numero():
+    """Le numéro du dernier geste réussi qui n'était pas une lecture, d'après le journal."""
+    numero = None
+    if JOURNAL.is_file():
+        for ligne in JOURNAL.read_text(encoding="utf-8").splitlines():
+            entree = json.loads(ligne)
+            if entree.get("geste") != "lire" and not entree.get("erreur"):
+                numero = entree["n"]
+    return numero
+
+
+def interruption_due(conf, numero, geste):
+    """La durée de l'interruption si elle tombe sur ce geste, sinon None.
+
+    Elle tombe une fois, au geste que le lanceur a tiré, ou au premier geste qui suit si celui-là
+    était une lecture. Lire ne touche pas l'app, et une interruption n'y aurait pas de sens."""
+    reglages = options(conf)
+    fait = Path(conf["dossier_net"]) / ".interrompu"
+    if (not reglages["interruption"] or reglages["interruption_geste"] is None or geste == "lire"
+            or numero < reglages["interruption_geste"] or fait.exists()):
+        return None
+    return reglages["interruption_duree"]
+
+
+def marquer_l_interruption(conf):
+    """L'interruption a eu lieu. Elle ne revient pas, même si la photo d'après échoue."""
+    (Path(conf["dossier_net"]) / ".interrompu").touch()
 
 
 def jouer(conf, geste, valeurs, destination, numero):
@@ -573,34 +810,65 @@ def jouer(conf, geste, valeurs, destination, numero):
     `lire` ne touche à rien. Il photographie l'écran tel qu'il est, et rend la zone nette.
     Rend la largeur du coup d'œil, les remarques, et ce qui entre au journal en plus."""
     nette = Path(conf["dossier_net"]) / destination.name
+    reglages = options(conf)
     lire = geste == "lire"
     mesurer = geste in GESTES_MESURES
+    impatient = reglages["double_toucher"] and geste == "toucher"
+    interruption = interruption_due(conf, numero, geste)
+    niveau = niveau_de_flou(conf)
     infos = {}
     ecart_mm = tirer_doigt(conf, numero) if geste in ("toucher", "glisser") else [0, 0]
+    if geste == "taper":
+        tape = faire_des_fautes(conf, numero, valeurs[0])
+        if tape != valeurs[0]:
+            infos["voulu"], infos["tape"] = valeurs[0], tape
+        valeurs = [tape]
     if geste == "attendre":
         time.sleep(min(valeurs[0], ATTENTE_MAX))
     if conf["plateforme"] == "web":
         sans_effet = geste in ("attendre", "lire")
         photo, pose, touche, retour = agir_web(conf, "voir" if sans_effet else geste,
-                                               [] if sans_effet else valeurs, ecart_mm, mesurer)
+                                               [] if sans_effet else valeurs, ecart_mm, mesurer,
+                                               impatient, interruption)
         ecrire_jpeg(photo, nette)
         remarques = retour.get("remarques", [])
         if touche:
             infos["vise"], infos["touche"] = valeurs, touche
-        if mesurer:
+        if retour.get("double"):
+            infos["double"] = True
+        if mesurer and pose is not None:
             infos["pose"] = pose
-        taille = taille_image(nette) if lire else flouter(nette, destination)
+        taille = taille_image(nette) if lire else flouter(nette, destination, niveau)
     else:
         if geste in ("toucher", "glisser"):
             touche = decaler_android(conf, valeurs, ecart_mm)
             infos["vise"], infos["touche"] = valeurs, touche
             valeurs = vers_ecran(conf, touche)
+        double = None
+        if impatient:
+            double = {"avant": empreinte(photo_android(conf)), "seuil": reglages["double_seuil"],
+                      "rejouer": lambda: agir_android(conf, geste, valeurs), "fait": False}
         agir_android(conf, geste, valeurs)
         png = None
         if mesurer:
-            png, infos["pose"] = attendre_la_pose(lambda: photo_android(conf))
-        taille = photographier_android(conf, nette, None if lire else destination, png)
+            attente = attendre_la_pose if reglages["pose"] else attente_fixe
+            png, pose = attente(lambda: photo_android(conf), double)
+            if pose is not None:
+                infos["pose"] = pose
+        if double and double["fait"]:
+            infos["double"] = True
+        if interruption is not None:
+            interrompre_android(conf, interruption)
+            marquer_l_interruption(conf)
+            png = None
+        taille = photographier_android(conf, nette, None if lire else destination, png, niveau)
         remarques = remarques_android(conf)
+    if interruption is not None:
+        infos["interruption"] = interruption
+        # Sur un site, c'est un onglet qui est passé derrière, pas une app.
+        retour_a = "au site" if conf["plateforme"] == "web" or conf.get("url") else "à l'app"
+        remarques = [f"Tu as été interrompu {interruption} s, puis tu es revenu {retour_a}.",
+                     *remarques]
     if lire:
         return (decouper(nette, taille, valeurs, destination, dernier_coup_d_oeil(conf)),
                 remarques, infos)
@@ -612,7 +880,7 @@ def consigner(numero, geste, valeurs, commentaire, capture, erreur, infos=None):
     """Une ligne de journal. `vise` et `touche` disent où le doigt visait et où il est tombé.
 
     `pose` dit en combien de secondes l'écran s'est posé. Elle vaut "vide" ou "bouge" au bout de
-    dix secondes."""
+    l'attente maximale du run, dix secondes par défaut."""
     ligne = {"n": numero, "heure": datetime.now().isoformat(timespec="seconds"),
              "geste": geste, "valeurs": valeurs, "commentaire": commentaire,
              "capture": capture, "erreur": erreur, **(infos or {})}
@@ -621,13 +889,23 @@ def consigner(numero, geste, valeurs, commentaire, capture, erreur, infos=None):
 
 
 def principal():
-    geste, valeurs, commentaire = lire_appel(sys.argv[1:])
+    global aide_courante
     conf = lire_configuration()
+    if not options(conf)["flou"]:
+        aide_courante = AIDE_NETTE
+    else:
+        aide_courante = AIDE.replace("au plus un quart de l'écran",
+                                     f"au plus {texte_de_part(options(conf)['lecture_max'])} de l'écran")
+    if conf["plateforme"] == "android" and conf.get("url"):
+        # Chrome Android teste un site, que `relancer` rouvre. Revue de la 121.
+        aide_courante = aide_courante.replace("rouvrir l'app depuis son icône", "rouvrir le site")
+    POSE["max"] = options(conf)["pose_max"]
+    geste, valeurs, commentaire = lire_appel(sys.argv[1:])
     if conf["plateforme"] == "android" and geste == "taper" and not valeurs[0].isascii():
         # `input text` d'Android ne sait pas taper une lettre accentuée.
         refuser("« taper » n'écrit ici que des lettres sans accent. C'est une limite du pilote, "
                 "pas de l'app")
-    numero = numero_suivant()
+    numero = numero_suivant(conf)
     if numero > conf.get("actions_max", numero):
         refuser(f"tu as fait tes {conf['actions_max']} gestes. Rends ton rapport maintenant")
     if geste == "lire":
@@ -648,9 +926,13 @@ def principal():
         print(f"Le geste n'a pas pu se faire : {panne}")
         return 1
     consigner(numero, geste, valeurs, commentaire, capture, None, infos)
+    oublier(conf, numero)
     if geste == "lire":
         print(f"Geste {numero} fait. Ce que tu as lu, net : {capture} ({largeur} px de large).")
         print("Ouvre-la. Tes coordonnées se lisent toujours sur le dernier coup d'œil.")
+    elif not options(conf)["flou"]:
+        print(f"Geste {numero} fait. Capture : {capture} ({largeur} px de large).")
+        print("Ouvre-la avant le geste suivant, tes coordonnées se lisent sur elle.")
     else:
         print(f"Geste {numero} fait. Coup d'œil : {capture} ({largeur} px de large).")
         print("Ouvre-le avant le geste suivant, tes coordonnées se lisent sur lui. Le petit texte "

@@ -8,7 +8,8 @@ description: >
   partagent sa cause. Choisit une ou deux mécaniques parmi les huit du dépôt. Prouve le
   garde-fou en l'exécutant, puis passe tout le projet au crible pour lister ce qui serait à
   corriger. Livre une proposition en français, mesurée au format
-  du dépôt. S'invoque UNIQUEMENT sur commande explicite `/auto-learn-skill`. Ne se déclenche
+  du dépôt. Mène l'analyse dans un sous-agent, puis rend le fil de la tâche interrompue.
+  S'invoque UNIQUEMENT sur commande explicite `/auto-learn-skill`. Ne se déclenche
   jamais tout seul sur une simple mention d'erreur.
 ---
 
@@ -26,6 +27,13 @@ main, en quatre demandes.
 
 Ce skill fait les quatre à la suite, puis s'arrête. Un seul arrêt les précède, obligatoire, la
 validation du cadrage à l'étape 0. Sans elle, rien ne part.
+
+**Il ne prend pas la place de la tâche en cours.** L'admin le lance souvent au milieu d'un autre
+travail. Le cadrage et la validation restent dans la conversation. Les étapes 1 à 6 partent dans
+un sous-agent, et seule la proposition en revient. La fin rend le fil à la tâche interrompue.
+
+> Vécu le 2026-11-24, rapporté par l'admin. Lancé au milieu d'un autre travail, le skill
+> remplissait la conversation de ses recherches. L'admin y perdait l'objectif de départ.
 
 **Il n'écrit rien dans le dépôt avant la validation.** Il produit un texte prêt à coller, et
 l'admin décide s'il s'insère. Le feu vert pour l'insérer se donne avec la validation, ou juste
@@ -45,6 +53,12 @@ ce choix par une autre dérive, présente ou passée.
 l'étape 3 établit. L'admin attend qu'on règle ce cas et ses voisins proches.
 
 ## Étape 0. Le cadrage, validé avant tout
+
+**Le fil d'abord.** Avant le cadrage, la session note la tâche que la commande interrompt. C'est
+la tâche en cours au moment de la commande, même quand la dérive s'y est produite. Elle cite sa
+demande, nomme sa branche et dit en une ligne où en était le travail.
+
+Sans tâche en cours, elle l'écrit. Cette note sert à l'étape 7.
 
 **Avant toute cause, faire valider le problème.** Quatre points, écrits depuis le journal de la
 session. Puis on s'arrête.
@@ -66,6 +80,36 @@ validation.
 
 L'admin valide ou corrige. Une correction refait le cadrage, jamais l'analyse. Rien d'autre ne
 se cherche avant la validation.
+
+## Le relais vers le sous-agent
+
+**Les étapes 1 à 6 se mènent dans un sous-agent**, de type `general-purpose`. C'est là que vit
+le bruit, lectures, journaux et preuves. La session ne refait aucune de ces recherches.
+
+Le sous-agent ne voit pas la conversation. Sa consigne porte donc tout ce qu'il ne peut pas
+retrouver seul.
+
+- le cadrage validé, tel quel
+- la citation exacte de la faute, et le passage qui l'entoure
+- le chemin du journal de la session en cours, pour les citations de l'étape 2 et les voisins de
+  l'étape 3
+- le chemin de ce skill, à suivre de l'étape 1 à l'étape 6
+- le sens de « cette session » à l'étape 2. Ce que le journal montre lancé ou ouvert par la
+  session de l'admin compte comme vérifié, citation du journal à l'appui.
+
+**Le journal est le fichier `.jsonl` le plus récent** de `~/.claude/projects/<dossier du
+projet>/`. La session le désigne par son chemin absolu. Introuvable, elle le dit, et la consigne
+porte alors en entier les passages que les étapes 2 et 3 citeront.
+
+**Il rend la main avec la proposition et son état.** La proposition est déjà mesurée, sortie des
+deux outils jointe. L'état porte les verdicts, la cause, la famille, et les chemins du contrôle
+candidat et de ses cas. La session vérifie que ces fichiers existent, puis montre la proposition
+telle quelle à l'étape 7.
+
+Un ajustement demandé relance le même sous-agent, à l'étape concernée. S'il ne peut pas
+reprendre, un sous-agent neuf repart avec la consigne, l'état et l'ajustement.
+
+**Sans sous-agent disponible, la session mène les étapes elle-même**, et le rendu le dit.
 
 ## Étape 1. La porte de l'existant
 
@@ -249,9 +293,18 @@ dire non produit des garde-fous de complaisance, et chacun coûte de l'entretien
 
 Présenter, puis s'arrêter. Ne rien écrire, ne rien committer, tant que l'admin n'a pas répondu.
 
+**Rendre le fil à chaque arrêt.** Le message qui présente la proposition finit par la tâche
+interrompue, notée à l'étape 0. Il la cite, et dit où elle en était. Le message qui clôt
+l'insertion fait de même. La session reprend cette tâche dès que l'admin le dit, sans
+redemander le contexte.
+
 Un ajustement demandé reprend à l'étape concernée, jamais de zéro. Une fois validée, le rôle du
 skill s'arrête et l'insertion commence, sur le feu vert de l'admin. Sans ce feu vert, le texte
 reste prêt à coller.
+
+**L'insertion part aussi dans le sous-agent**, dans un worktree à part, jamais dans le dossier de
+la tâche interrompue. Sa branche et ses changements non commités restent donc intacts. Le
+sous-agent rend la main avec les demandes de fusion ouvertes.
 
 L'insertion couvre les fichiers du bloc 7 et les deux blocs prêts à coller du bloc 10. La session
 les trie en deux tas.

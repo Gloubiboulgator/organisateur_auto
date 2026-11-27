@@ -159,7 +159,7 @@ un test qu'il écrit lui-même sur sa propre croyance, et ce test reste vert quo
    [`docs/ton-des-echanges.md`](docs/ton-des-echanges.md). Jamais en vrac dans une réponse.
 4. **Ne jamais coder un changement graphique sans maquette validée.** Tout ce qui se voit se
    montre d'abord et s'approuve avant le code. La maquette montre des cas réalistes et
-   contrastés, dont ceux qui ne portent **pas** la marque. C'est là que les erreurs se voient.
+   contrastés, dont ceux qui ne portent **pas** la marque. C'est là que les erreurs se voient. Une cinématique suit [`docs/faire-une-cinematique.md`](docs/faire-une-cinematique.md), dont l'animatique, aux deux formats, tient lieu de maquette.
 
 ### La mécanique qui les rend non contournables
 
